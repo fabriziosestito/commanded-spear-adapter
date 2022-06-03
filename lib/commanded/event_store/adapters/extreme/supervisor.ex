@@ -48,7 +48,7 @@ defmodule Commanded.EventStore.Adapters.Extreme.Supervisor do
         shutdown: 5000,
         type: :worker
       },
-      {Spear.Connection,  Keyword.merge(spear_config, [name: spear_name])},
+      {Spear.Connection, Keyword.merge(spear_config, name: spear_name)},
       {SubscriptionsSupervisor, name: subscriptions_name}
     ]
 
