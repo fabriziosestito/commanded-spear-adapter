@@ -290,24 +290,21 @@ defmodule Commanded.EventStore.Adapters.Extreme do
     conn = conn_name(adapter_meta)
     serializer = serializer(adapter_meta)
 
-    spear_events =
-      Enum.map(events, fn event ->
-        %Spear.Event{
-          body: event.data,
-          id: UUID.uuid4(),
-          metadata: %{
-            content_type: "application/json",
-            custom_metadata:
-              event.metadata
-              |> add_causation_id(event.causation_id)
-              |> add_correlation_id(event.correlation_id)
-              |> serializer.serialize()
-          },
-          type: event.event_type
-        }
-      end)
-
-    case Spear.append(spear_events, conn, stream, expect: expected_version(expected_version)) do
+    events
+    |> Stream.map(fn event ->
+      event.event_type
+      |> Spear.Event.new(
+        event.data,
+        custom_metadata:
+          event.metadata
+          |> add_causation_id(event.causation_id)
+          |> add_correlation_id(event.correlation_id)
+          |> serializer.serialize()
+      )
+      |> Spear.Event.to_proposed_message(%{"application/json" => &serializer.serialize/1})
+    end)
+    |> Spear.append(conn, stream, expect: expected_version(expected_version))
+    |> case do
       :ok ->
         :ok
 
