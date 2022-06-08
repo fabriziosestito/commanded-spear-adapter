@@ -343,10 +343,38 @@ defmodule Commanded.EventStore.Adapters.Extreme do
          read_events \\ []
        ) do
     server = server_name(adapter_meta)
+    conn = conn_name(adapter_meta)
     remaining_count = count - length(read_events)
     read_request = read_events(stream, start_version, remaining_count, direction)
 
     serializer = Map.fetch!(adapter_meta, :serializer)
+
+    direction =
+      case direction do
+        :forward -> :forwards
+        :backward -> :backwards
+      end
+
+    case Spear.stream!(conn, stream, raw?: true, direction: direction, max_count: count) do
+      [] ->
+        {:error, :stream_not_found}
+
+      events ->
+        events
+        |> Enum.map(fn event ->
+          event
+          |> IO.inspect()
+          |> Spear.Event.from_read_response(
+            json_decoder: fn json, _ ->
+              serializer.deserialize(json,
+                type:
+                  "Elixir.Commanded.EventStore.Adapters.Extreme.AppendEventsTest.BankAccountOpened"
+              )
+            end
+          )
+          |> Mapper.to_recorded_event(serializer)
+        end)
+    end
 
     case Extreme.execute(server, read_request) do
       {:ok, %ExMsg.ReadStreamEventsCompleted{} = result} ->

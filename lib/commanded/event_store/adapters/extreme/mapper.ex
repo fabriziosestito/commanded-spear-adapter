@@ -4,6 +4,12 @@ defmodule Commanded.EventStore.Adapters.Extreme.Mapper do
   alias Commanded.EventStore.RecordedEvent
   alias Extreme.Msg, as: ExMsg
 
+  alias Spear.Event
+
+  def to_recorded_event(%Event{id: id, body: body, metadata: metadata}, serializer) do
+    {body, metadata}
+  end
+
   def to_recorded_event(%ExMsg.ResolvedIndexedEvent{event: event, link: nil}, serializer),
     do: to_recorded_event(event, event.event_number + 1, serializer)
 
