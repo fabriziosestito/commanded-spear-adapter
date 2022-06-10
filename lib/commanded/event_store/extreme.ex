@@ -363,16 +363,11 @@ defmodule Commanded.EventStore.Adapters.Extreme do
         events
         |> Enum.map(fn event ->
           event
-          |> IO.inspect()
-          |> Spear.Event.from_read_response(
-            json_decoder: fn json, _ ->
-              serializer.deserialize(json,
-                type:
-                  "Elixir.Commanded.EventStore.Adapters.Extreme.AppendEventsTest.BankAccountOpened"
-              )
-            end
-          )
+          # HACK: dummy json decopder function to prevent automatic json decoding
+          # see: https://hexdocs.pm/spear/Spear.Event.html#from_read_response/2-json-decoding
+          |> Spear.Event.from_read_response(json_decoder: fn data, _ -> data end)
           |> Mapper.to_recorded_event(serializer)
+          |> IO.inspect()
         end)
     end
 

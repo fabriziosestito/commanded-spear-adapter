@@ -1,0 +1,2 @@
+defmodule Commanded.Serialization.EvenstoreDbSerializer do
+end
