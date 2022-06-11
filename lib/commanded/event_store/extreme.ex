@@ -251,8 +251,8 @@ defmodule Commanded.EventStore.Adapters.Extreme do
   defp snapshot_stream_name(adapter_meta, source_uuid),
     do: Map.fetch!(adapter_meta, :stream_prefix) <> "snapshot-" <> source_uuid
 
-  defp normalize_start_version(0), do: 0
-  defp normalize_start_version(start_version), do: start_version - 1
+  defp normalize_start_version(0), do: :start
+  defp normalize_start_version(start_version), do: (start_version - 1) |> IO.inspect()
 
   defp to_snapshot_data(%RecordedEvent{} = event) do
     %RecordedEvent{data: snapshot} = event
@@ -342,11 +342,7 @@ defmodule Commanded.EventStore.Adapters.Extreme do
          direction,
          read_events \\ []
        ) do
-    server = server_name(adapter_meta)
     conn = conn_name(adapter_meta)
-    remaining_count = count - length(read_events)
-    read_request = read_events(stream, start_version, remaining_count, direction)
-
     serializer = Map.fetch!(adapter_meta, :serializer)
 
     direction =
@@ -355,59 +351,64 @@ defmodule Commanded.EventStore.Adapters.Extreme do
         :backward -> :backwards
       end
 
-    case Spear.stream!(conn, stream, raw?: true, direction: direction, max_count: count) do
+    case Spear.stream!(conn, stream,
+           raw?: true,
+           from: start_version,
+           direction: direction,
+           max_count: count
+         ) do
       [] ->
         {:error, :stream_not_found}
 
       events ->
-        events
-        |> Enum.map(fn event ->
-          event
-          # HACK: dummy json decopder function to prevent automatic json decoding
-          # see: https://hexdocs.pm/spear/Spear.Event.html#from_read_response/2-json-decoding
-          |> Spear.Event.from_read_response(json_decoder: fn data, _ -> data end)
-          |> Mapper.to_recorded_event(serializer)
-          |> IO.inspect()
-        end)
+        {:ok,
+         events
+         |> Enum.map(fn event ->
+           event
+           # HACK: dummy json decopder function to prevent automatic json decoding
+           # see: https://hexdocs.pm/spear/Spear.Event.html#from_read_response/2-json-decoding
+           |> Spear.Event.from_read_response(json_decoder: fn data, _ -> data end)
+           |> Mapper.to_recorded_event(serializer)
+         end), true}
     end
 
-    case Extreme.execute(server, read_request) do
-      {:ok, %ExMsg.ReadStreamEventsCompleted{} = result} ->
-        %ExMsg.ReadStreamEventsCompleted{
-          is_end_of_stream: end_of_stream?,
-          events: events
-        } = result
+    # case Extreme.execute(server, read_request) do
+    #   {:ok, %ExMsg.ReadStreamEventsCompleted{} = result} ->
+    #     %ExMsg.ReadStreamEventsCompleted{
+    #       is_end_of_stream: end_of_stream?,
+    #       events: events
+    #     } = result
 
-        read_events = read_events ++ events
+    #     read_events = read_events ++ events
 
-        if end_of_stream? || length(read_events) == count do
-          recorded_events = Enum.map(read_events, &Mapper.to_recorded_event(&1, serializer))
+    #     if end_of_stream? || length(read_events) == count do
+    #       recorded_events = Enum.map(read_events, &Mapper.to_recorded_event(&1, serializer))
 
-          {:ok, recorded_events, end_of_stream?}
-        else
-          # can occur with soft deleted streams
-          start_version =
-            case direction do
-              :forward -> result.next_event_number
-              :backward -> result.last_event_number
-            end
+    #       {:ok, recorded_events, end_of_stream?}
+    #     else
+    #       # can occur with soft deleted streams
+    #       start_version =
+    #         case direction do
+    #           :forward -> result.next_event_number
+    #           :backward -> result.last_event_number
+    #         end
 
-          execute_read(
-            adapter_meta,
-            stream,
-            start_version,
-            remaining_count,
-            direction,
-            read_events
-          )
-        end
+    #       execute_read(
+    #         adapter_meta,
+    #         stream,
+    #         start_version,
+    #         remaining_count,
+    #         direction,
+    #         read_events
+    #       )
+    #     end
 
-      {:error, :NoStream, _} ->
-        {:error, :stream_not_found}
+    #   {:error, :NoStream, _} ->
+    #     {:error, :stream_not_found}
 
-      err ->
-        err
-    end
+    #   err ->
+    #     err
+    # end
   end
 
   defp read_events(stream, from_event_number, max_count, direction) do

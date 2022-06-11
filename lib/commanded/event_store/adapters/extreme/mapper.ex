@@ -6,8 +6,45 @@ defmodule Commanded.EventStore.Adapters.Extreme.Mapper do
 
   alias Spear.Event
 
-  def to_recorded_event(%Event{id: id, body: body, metadata: metadata}, serializer) do
-    {body, metadata}
+  def to_recorded_event(
+        %Event{
+          id: id,
+          body: body,
+          type: type,
+          metadata: %{
+            stream_revision: stream_revision,
+            stream_name: stream_name,
+            created: created,
+            custom_metadata: custom_metadata
+          }
+        },
+        serializer
+      ) do
+    metadata =
+      case custom_metadata do
+        none when none in [nil, ""] -> %{}
+        metadata -> serializer.deserialize(metadata, [])
+      end
+
+    {causation_id, metadata} = Map.pop(metadata, "$causationId")
+    {correlation_id, metadata} = Map.pop(metadata, "$correlationId")
+
+    %RecordedEvent{
+      event_id: id,
+      event_number: stream_revision,
+      stream_id:
+        stream_name
+        |> String.split("-")
+        |> Enum.drop(1)
+        |> Enum.join("-"),
+      stream_version: stream_revision + 1,
+      causation_id: causation_id,
+      correlation_id: correlation_id,
+      event_type: type,
+      data: serializer.deserialize(body, type: type),
+      metadata: metadata,
+      created_at: created
+    }
   end
 
   def to_recorded_event(%ExMsg.ResolvedIndexedEvent{event: event, link: nil}, serializer),
