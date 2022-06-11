@@ -45,7 +45,8 @@ defmodule Commanded.EventStore.Adapters.Extreme.Mixfile do
 
       # Test & build tooling
       {:ex_doc, "~> 0.21", only: :dev},
-      {:mox, "~> 1.0", only: :test}
+      {:mox, "~> 1.0", only: :test},
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
     ]
   end
 
