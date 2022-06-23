@@ -18,6 +18,7 @@ defmodule Commanded.EventStore.Adapters.Extreme.SubscriptionsSupervisor do
 
   def start_subscription(
         event_store,
+        conn,
         stream,
         subscription_name,
         subscriber,
@@ -30,6 +31,7 @@ defmodule Commanded.EventStore.Adapters.Extreme.SubscriptionsSupervisor do
     spec =
       subscription_spec(
         event_store,
+        conn,
         stream,
         subscription_name,
         subscriber,
@@ -54,6 +56,7 @@ defmodule Commanded.EventStore.Adapters.Extreme.SubscriptionsSupervisor do
             if index < subscriber_max_count - 1 do
               start_subscription(
                 stream,
+                conn,
                 subscription_name,
                 subscriber,
                 serializer,
@@ -78,6 +81,7 @@ defmodule Commanded.EventStore.Adapters.Extreme.SubscriptionsSupervisor do
 
   defp subscription_spec(
          event_store,
+         conn,
          stream,
          subscription_name,
          subscriber,
@@ -87,6 +91,7 @@ defmodule Commanded.EventStore.Adapters.Extreme.SubscriptionsSupervisor do
        ) do
     start_args = [
       event_store,
+      conn,
       stream,
       subscription_name,
       subscriber,

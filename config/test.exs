@@ -9,3 +9,6 @@ config :ex_unit,
 config :commanded,
   assert_receive_event_timeout: 5_000,
   refute_receive_event_timeout: 1_000
+
+# config :logger,
+#   level: :error

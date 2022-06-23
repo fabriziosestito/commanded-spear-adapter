@@ -16,10 +16,18 @@ defmodule Commanded.EventStore.Adapters.Extreme.Mapper do
             stream_name: stream_name,
             created: created,
             custom_metadata: custom_metadata
-          }
+          },
+          link: link
         },
         serializer
       ) do
+    event_number =
+      if link do
+        link.metadata.stream_revision + 1
+      else
+        stream_revision + 1
+      end
+
     metadata =
       case custom_metadata do
         none when none in [nil, ""] -> %{}
@@ -31,7 +39,7 @@ defmodule Commanded.EventStore.Adapters.Extreme.Mapper do
 
     %RecordedEvent{
       event_id: id,
-      event_number: stream_revision,
+      event_number: event_number,
       stream_id:
         stream_name
         |> String.split("-")

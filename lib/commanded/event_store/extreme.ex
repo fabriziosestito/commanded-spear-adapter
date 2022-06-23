@@ -102,12 +102,14 @@ defmodule Commanded.EventStore.Adapters.Extreme do
   @impl Commanded.EventStore.Adapter
   def subscribe_to(adapter_meta, :all, subscription_name, subscriber, start_from, opts) do
     event_store = server_name(adapter_meta)
+    conn = conn_name(adapter_meta)
     stream = Map.fetch!(adapter_meta, :all_stream)
     serializer = serializer(adapter_meta)
     opts = subscription_options(opts, start_from)
 
     SubscriptionsSupervisor.start_subscription(
       event_store,
+      conn,
       stream,
       subscription_name,
       subscriber,
@@ -119,12 +121,14 @@ defmodule Commanded.EventStore.Adapters.Extreme do
   @impl Commanded.EventStore.Adapter
   def subscribe_to(adapter_meta, stream_uuid, subscription_name, subscriber, start_from, opts) do
     event_store = server_name(adapter_meta)
+    conn = conn_name(adapter_meta)
     stream = stream_name(adapter_meta, stream_uuid)
     serializer = serializer(adapter_meta)
     opts = subscription_options(opts, start_from)
 
     SubscriptionsSupervisor.start_subscription(
       event_store,
+      conn,
       stream,
       subscription_name,
       subscriber,
@@ -235,7 +239,6 @@ defmodule Commanded.EventStore.Adapters.Extreme do
   defp add_to_stream(adapter_meta, stream, expected_version, events) do
     conn = conn_name(adapter_meta)
     serializer = serializer(adapter_meta)
-
     events
     |> Stream.map(fn event ->
       event.event_type
