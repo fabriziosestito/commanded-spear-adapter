@@ -97,7 +97,6 @@
 
 #   ## Examples
 
-
 #       iex> {:ok, conn} = Spear.Connection.start_link(connection_string: "esdb://localhost:2113")
 #       {:ok, #PID<0.225.0>}
 #       iex> Spear.read_stream(conn, "es_supported_clients", max_count: 1)

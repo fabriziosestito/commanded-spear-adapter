@@ -293,7 +293,6 @@ defmodule Commanded.EventStore.Adapters.Extreme.DeleteStreamTest do
       refute_receive {:on_event, _event, _correlation_id}
     end
 
-
     test "category subscription should not receive any events",
          %{config: config, server: server, stream_id: stream_id} do
       :ok = hard_delete_stream(server, stream_id, 2)
