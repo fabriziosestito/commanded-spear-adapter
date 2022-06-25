@@ -3,6 +3,8 @@ defmodule Commanded.EventStore.Adapters.Extreme.DeleteStreamTest do
 
   alias Extreme.Msg, as: ExMsg
 
+  @moduletag :skip
+
   setup do
     config = config()
 
@@ -290,6 +292,7 @@ defmodule Commanded.EventStore.Adapters.Extreme.DeleteStreamTest do
 
       refute_receive {:on_event, _event, _correlation_id}
     end
+
 
     test "category subscription should not receive any events",
          %{config: config, server: server, stream_id: stream_id} do

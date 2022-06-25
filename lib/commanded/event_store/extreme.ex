@@ -100,6 +100,8 @@ defmodule Commanded.EventStore.Adapters.Extreme do
   end
 
   @impl Commanded.EventStore.Adapter
+  @spec subscribe_to(map, :all | binary, any, any, any, keyword) ::
+          :ignore | {:error, any} | {:ok, pid}
   def subscribe_to(adapter_meta, :all, subscription_name, subscriber, start_from, opts) do
     event_store = server_name(adapter_meta)
     conn = conn_name(adapter_meta)
@@ -138,11 +140,17 @@ defmodule Commanded.EventStore.Adapters.Extreme do
   end
 
   @impl Commanded.EventStore.Adapter
+  @spec ack_event(
+          any,
+          atom | pid | {atom, any} | {:via, atom, any},
+          Commanded.EventStore.RecordedEvent.t()
+        ) :: any
   def ack_event(_adapter_meta, subscription, %RecordedEvent{event_number: event_number}) do
     Subscription.ack(subscription, event_number)
   end
 
   @impl Commanded.EventStore.Adapter
+  @spec unsubscribe(map, pid) :: any
   def unsubscribe(adapter_meta, subscription) do
     event_store = server_name(adapter_meta)
 
@@ -239,6 +247,7 @@ defmodule Commanded.EventStore.Adapters.Extreme do
   defp add_to_stream(adapter_meta, stream, expected_version, events) do
     conn = conn_name(adapter_meta)
     serializer = serializer(adapter_meta)
+
     events
     |> Stream.map(fn event ->
       event.event_type

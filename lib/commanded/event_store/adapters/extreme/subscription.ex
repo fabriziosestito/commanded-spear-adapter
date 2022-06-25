@@ -66,6 +66,7 @@ defmodule Commanded.EventStore.Adapters.Extreme.Subscription do
 
   @impl GenServer
   def init(%State{} = state) do
+    Process.flag(:trap_exit, true)
     %State{subscriber: subscriber} = state
 
     state = %State{state | subscriber_ref: Process.monitor(subscriber)}
@@ -79,7 +80,7 @@ defmodule Commanded.EventStore.Adapters.Extreme.Subscription do
   def handle_call(
         {:ack, event_number},
         _from,
-        %State{last_seen_event_number: event_number} = state
+        %State{last_seen_event_number: event_number, stream: stream, name: name} = state
       ) do
     %State{
       conn: conn,
@@ -89,21 +90,13 @@ defmodule Commanded.EventStore.Adapters.Extreme.Subscription do
     } = state
 
     Logger.debug(fn -> describe(state) <> " ack event: #{inspect(event_number)}" end)
-    IO.inspect(state)
+    IO.inspect("ack: #{event_number}")
     :ok = Spear.ack(conn, subscription, [event_id])
-
-    # :ok = Extreme.PersistentSubscription.ack(subscription, event_id, correlation_id)
 
     state = %State{state | last_seen_event_id: nil, last_seen_event_number: nil}
 
     {:reply, :ok, state}
   end
-
-  # def handle_call({:ack, asd}, _from, state) do
-  #   IO.inspect("badbad")
-  #   IO.inspect(asd)
-  #   {:reply, :ok, state}
-  # end
 
   @impl GenServer
   def handle_info(:subscribe, state) do
@@ -124,17 +117,24 @@ defmodule Commanded.EventStore.Adapters.Extreme.Subscription do
       ) do
     %State{subscriber: subscriber, subscription: subscription, serializer: serializer} = state
 
-    %Spear.Event{id: event_id, type: event_type} =
+    %Spear.Event{type: event_type} =
       event = Spear.Event.from_read_response(raw_event, json_decoder: fn data, _ -> data end)
+
+    event_id =
+      if event.link == nil do
+        event.id
+      else
+        event.link.id
+      end
 
     Logger.debug(fn -> describe(state) <> " received event: #{inspect(event)}" end)
 
     state =
       if event_type != nil and "$" != String.first(event_type) do
         %RecordedEvent{event_number: event_number} =
-          recorded_event = Mapper.to_recorded_event(event, serializer) |> IO.inspect()
+          recorded_event = Mapper.to_recorded_event(event, serializer)
 
-        Process.sleep(2_000)
+        IO.inspect("receive: #{event_number}")
         send(subscriber, {:events, [recorded_event]})
 
         %State{
@@ -159,12 +159,11 @@ defmodule Commanded.EventStore.Adapters.Extreme.Subscription do
   @impl GenServer
   def handle_info(
         {:DOWN, ref, :process, _pid, reason},
-        %State{conn: conn, stream: stream, name: name} = state
+        %State{conn: conn, stream: stream, name: name, subscription: subscription} = state
       ) do
     Logger.debug(fn -> describe(state) <> " down due to: #{inspect(reason)}" end)
 
     %State{subscriber_ref: subscriber_ref, subscription_ref: subscription_ref} = state
-    Spear.delete_persistent_subscription(conn, stream, name)
 
     case {ref, reason} do
       {^subscriber_ref, _} ->
@@ -177,6 +176,15 @@ defmodule Commanded.EventStore.Adapters.Extreme.Subscription do
         {:stop, {:shutdown, :receiver_shutdown}, state}
     end
   end
+
+  def terminate(_, _) do
+    Process.sleep(2_000)
+  end
+
+  # def handle_info(:stop, state) do
+  #   IO.inspect("here")
+  #   {:stop, {:shutdown, :subscriber_shutdown}, state}
+  # end
 
   defp subscribe(%State{} = state) do
     with :ok <- create_persistent_subscription(state),
@@ -225,56 +233,34 @@ defmodule Commanded.EventStore.Adapters.Extreme.Subscription do
         event_number -> event_number
       end
 
-    # message =
-    #   ExMsg.CreatePersistentSubscription.new(
-    #     subscription_group_name: name,
-    #     event_stream_id: stream,
-    #     resolve_link_tos: true,
-    #     start_from: start_from,
-    #     message_timeout_milliseconds: 10_000,
-    #     record_statistics: false,
-    #     live_buffer_size: 500,
-    #     read_batch_size: 20,
-    #     buffer_size: 500,
-    #     max_retry_count: 10,
-    #     prefer_round_robin: false,
-    #     checkpoint_after_time: 1_000,
-    #     checkpoint_max_count: 500,
-    #     checkpoint_min_count: 1,
-    #     subscriber_max_count: subscriber_max_count
-    #   )
+    case Spear.create_persistent_subscription(
+           conn,
+           stream,
+           name,
+           %Spear.PersistentSubscription.Settings{
+             max_subscriber_count: subscriber_max_count,
+             message_timeout: 10_000,
+             resolve_links?: true
+           },
+           from: start_from,
+           filter: Spear.Filter.exclude_system_events()
+         ) do
+      :ok ->
+        :ok
 
-    # case Extreme.execute(server, message) do
-    #   {:ok, %ExMsg.CreatePersistentSubscriptionCompleted{result: :Success}} -> :ok
-    #   {:error, :AlreadyExists, _response} -> :ok
-    #   reply -> reply
-    # end
+      {:error,
+       %Spear.Grpc.Response{
+         status: :already_exists
+       }} ->
+        :ok
 
-    Spear.create_persistent_subscription(
-      conn,
-      stream,
-      name,
-      %Spear.PersistentSubscription.Settings{
-        message_timeout: 10_000,
-        live_buffer_size: 500,
-        checkpoint_after: 1_000,
-        max_checkpoint_count: 500,
-        max_subscriber_count: subscriber_max_count,
-        read_batch_size: 20,
-        named_consumer_strategy: :RoundRobin,
-        resolve_links?: true
-      },
-      from: start_from
-    )
+      err ->
+        err
+    end
   end
 
-  defp connect_to_persistent_subscription(%State{} = state) do
-    %State{conn: conn, name: name, stream: stream} = state
-
-    Spear.connect_to_persistent_subscription(conn, self(), stream, name,
-      raw?: true,
-      buffer_size: 1
-    )
+  defp connect_to_persistent_subscription(%State{conn: conn, name: name, stream: stream}) do
+    Spear.connect_to_persistent_subscription(conn, self(), stream, name, raw?: true)
   end
 
   # Get the delay between subscription attempts, in milliseconds, from app
