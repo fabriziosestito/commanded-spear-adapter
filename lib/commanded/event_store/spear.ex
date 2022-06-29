@@ -3,7 +3,7 @@ defmodule Commanded.EventStore.Adapters.Spear do
   Adapter to use [Event Store](https://eventstore.com/), via the Spear library
   client, with Commanded.
 
-  Please check the [Getting started](getting-started.html) guide to learn more.
+  Please check the [Getting started](readme.html#getting-started) guide to learn more.
   """
 
   @behaviour Commanded.EventStore.Adapter
