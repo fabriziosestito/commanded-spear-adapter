@@ -51,7 +51,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Mixfile do
 
   defp description do
     """
-    Spear event store adapter for Commanded
+    EventStoreDB adapter for Commanded based on Spear
     """
   end
 
@@ -60,11 +60,8 @@ defmodule Commanded.EventStore.Adapters.Spear.Mixfile do
       main: "Commanded.EventStore.Adapters.Spear",
       canonical: "http://hexdocs.pm/commanded_spear_adapter",
       source_ref: "v#{@version}",
-      extra_section: "GUIDES",
       extras: [
-        "CHANGELOG.md",
-        "guides/Getting Started.md": [filename: "getting-started", title: "Spear adapter"],
-        "guides/Testing.md": [title: "Testing"]
+        "CHANGELOG.md"
       ]
     ]
   end
