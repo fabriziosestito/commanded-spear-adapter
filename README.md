@@ -1,7 +1,15 @@
 # Spear EventStoreDB adapter for Commanded
 
 Commanded EvenstoreDB adapter based on [spear](https://github.com/NFIBrokerage/spear).
-The code is based on [commanded-extreme-adapter](https://github.com/commanded/commanded-extreme-adapter)
+The code is based on [commanded-extreme-adapter](https://github.com/commanded/commanded-extreme-adapter).
+
+---
+
+[Hex package](https://hex.pm/packages/commanded_spear_adapter)
+
+[Changelog](CHANGELOG.md)
+
+---
 
 ## Getting started
 
