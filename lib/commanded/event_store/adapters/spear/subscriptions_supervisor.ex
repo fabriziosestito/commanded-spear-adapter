@@ -47,11 +47,11 @@ defmodule Commanded.EventStore.Adapters.Spear.SubscriptionsSupervisor do
         {:ok, pid}
 
       {:error, {:already_started, _pid}} ->
-        case Keyword.get(opts, :subscriber_max_count) do
+        case Keyword.get(opts, :concurrency_limit) do
           nil ->
             {:error, :subscription_already_exists}
 
-          subscriber_max_count when index < subscriber_max_count - 1 ->
+          concurrency_limit when index < concurrency_limit - 1 ->
             start_subscription(
               event_store,
               conn,
