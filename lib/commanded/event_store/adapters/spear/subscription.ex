@@ -20,7 +20,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
     :serializer,
     :stream,
     :start_from,
-    :subscriber_max_count,
+    :concurrency_limit,
     :subscriber,
     :subscriber_ref,
     :subscription,
@@ -38,7 +38,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
       serializer: serializer,
       subscriber: subscriber,
       start_from: Keyword.get(opts, :start_from),
-      subscriber_max_count: Keyword.get(opts, :subscriber_max_count, 1),
+      concurrency_limit: Keyword.get(opts, :concurrency_limit, 1),
       retry_interval: subscription_retry_interval()
     }
 
@@ -168,11 +168,11 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
       name: name,
       stream: stream,
       start_from: start_from,
-      subscriber_max_count: subscriber_max_count
+      concurrency_limit: concurrency_limit
     } = state
 
     settings = %Spear.PersistentSubscription.Settings{
-      max_subscriber_count: subscriber_max_count,
+      max_subscriber_count: concurrency_limit,
       message_timeout: 10_000,
       resolve_links?: true
     }

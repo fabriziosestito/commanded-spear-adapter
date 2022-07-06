@@ -216,8 +216,8 @@ defmodule Commanded.EventStore.Adapters.Spear do
       {:ok, _events} ->
         add_to_stream(adapter_meta, stream, :any_version, events)
 
-      {:error, :stream_not_found} ->
-        {:error, :stream_does_not_exist}
+      err ->
+        err
     end
   end
 
@@ -240,7 +240,7 @@ defmodule Commanded.EventStore.Adapters.Spear do
 
         case expected_version do
           :no_stream -> {:error, :stream_exists}
-          :stream_exists -> {:error, :stream_does_not_exist}
+          :stream_exists -> {:error, :stream_not_found}
           _expected_version -> {:error, :wrong_expected_version}
         end
 
