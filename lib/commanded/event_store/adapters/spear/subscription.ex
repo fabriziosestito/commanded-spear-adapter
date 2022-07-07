@@ -21,6 +21,8 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
     :stream,
     :start_from,
     :concurrency_limit,
+    :partition_by,
+    :index,
     :subscriber,
     :subscriber_ref,
     :subscription,
@@ -31,14 +33,25 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   Start a process to create and connect a persistent connection to the Event Store
   """
   def start_link(conn, stream, subscription_name, subscriber, serializer, opts) do
+    concurrency_limit = Keyword.get(opts, :concurrency_limit, 1)
+    partition_by = Keyword.get(opts, :partition_by, nil)
+    index = Keyword.get(opts, :index, 0)
+
     state = %State{
       conn: conn,
       stream: stream,
-      name: subscription_name,
+      name:
+        if partition_by && concurrency_limit > 1 do
+          "#{subscription_name}_#{index}"
+        else
+          subscription_name
+        end,
       serializer: serializer,
       subscriber: subscriber,
       start_from: Keyword.get(opts, :start_from),
-      concurrency_limit: Keyword.get(opts, :concurrency_limit, 1),
+      concurrency_limit: concurrency_limit,
+      partition_by: partition_by,
+      index: index,
       retry_interval: subscription_retry_interval()
     }
 
@@ -91,8 +104,13 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   def handle_info(
         {_, Persistent.read_resp() = read_resp},
         %State{
+          conn: conn,
+          subscription: subscription,
           subscriber: subscriber,
-          serializer: serializer
+          serializer: serializer,
+          partition_by: partition_by,
+          concurrency_limit: concurrency_limit,
+          index: index
         } = state
       ) do
     event = Mapper.to_spear_event(read_resp)
@@ -101,14 +119,19 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
     %RecordedEvent{event_number: event_number} =
       recorded_event = Mapper.to_recorded_event(event, serializer)
 
-    send(subscriber, {:events, [recorded_event]})
+    if should_send_event?(partition_by, recorded_event, index, concurrency_limit) do
+      send(subscriber, {:events, [recorded_event]})
 
-    {:noreply,
-     %State{
-       state
-       | last_seen_event_id: event_id_to_ack(event),
-         last_seen_event_number: event_number
-     }}
+      {:noreply,
+       %State{
+         state
+         | last_seen_event_id: event_id_to_ack(event),
+           last_seen_event_number: event_number
+       }}
+    else
+      Spear.ack(conn, subscription, [event_id_to_ack(event)])
+      {:noreply, state}
+    end
   end
 
   @impl GenServer
@@ -221,6 +244,14 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   defp normalize_start_from(:origin), do: :start
   defp normalize_start_from(:current), do: :end
   defp normalize_start_from(event_number), do: event_number
+
+  defp should_send_event?(nil, _, _, _), do: true
+
+  defp should_send_event?(partition_by, recorded_event, index, concurrency_limit) do
+    partition_key = partition_by.(recorded_event)
+
+    :erlang.phash2(partition_key, concurrency_limit) == index
+  end
 
   defp describe(%State{name: name}), do: "Spear event store subscription #{inspect(name)}"
 end
