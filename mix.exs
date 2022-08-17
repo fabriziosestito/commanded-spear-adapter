@@ -37,7 +37,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Mixfile do
 
   defp deps do
     [
-      {:commanded, github: "fabriziosestito/commanded", branch: "wait_for_eventstore"},
+      {:commanded, "~> 1.3"},
       {:spear, "~> 1.0"},
 
       # Test & build tooling

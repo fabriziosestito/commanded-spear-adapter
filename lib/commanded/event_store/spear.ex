@@ -104,6 +104,25 @@ defmodule Commanded.EventStore.Adapters.Spear do
   end
 
   @impl Commanded.EventStore.Adapter
+  def subscribe_to(adapter_meta, :all, subscription_name, subscriber, start_from, opts) do
+    event_store = server_name(adapter_meta)
+    conn = conn_name(adapter_meta)
+    stream = Map.fetch!(adapter_meta, :all_stream)
+    serializer = serializer(adapter_meta)
+    opts = subscription_options(opts, start_from)
+
+    SubscriptionsSupervisor.start_subscription(
+      event_store,
+      conn,
+      stream,
+      subscription_name,
+      subscriber,
+      serializer,
+      opts
+    )
+  end
+
+  @impl Commanded.EventStore.Adapter
   def subscribe_to(adapter_meta, stream_uuid, subscription_name, subscriber, start_from, opts) do
     event_store = server_name(adapter_meta)
     conn = conn_name(adapter_meta)
@@ -132,6 +151,14 @@ defmodule Commanded.EventStore.Adapters.Spear do
     event_store = server_name(adapter_meta)
 
     SubscriptionsSupervisor.stop_subscription(event_store, subscription)
+  end
+
+  @impl Commanded.EventStore.Adapter
+  def delete_subscription(adapter_meta, :all, subscription_name) do
+    conn = conn_name(adapter_meta)
+    stream = Map.fetch!(adapter_meta, :all_stream)
+
+    Spear.delete_persistent_subscription(conn, stream, subscription_name)
   end
 
   @impl Commanded.EventStore.Adapter
@@ -174,9 +201,6 @@ defmodule Commanded.EventStore.Adapters.Spear do
 
     Spear.delete_stream(conn, stream)
   end
-
-  defp stream_name(adapter_meta, :all),
-    do: Map.fetch!(adapter_meta, :all_stream)
 
   defp stream_name(adapter_meta, stream_uuid),
     do: Map.fetch!(adapter_meta, :stream_prefix) <> "-" <> stream_uuid
