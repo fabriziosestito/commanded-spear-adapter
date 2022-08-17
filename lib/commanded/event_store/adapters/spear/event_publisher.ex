@@ -72,6 +72,12 @@ defmodule Commanded.EventStore.Adapters.Spear.EventPublisher do
     {:noreply, state, {:continue, :subscribe}}
   end
 
+  defp process_push(%Spear.Event{type: "$>"}, _) do
+    # This is a workaround to skip system events.
+    # Uisng a filter would be better, but for some reason the filter causes no events to be received.
+    :ok
+  end
+
   defp process_push(push, %State{serializer: serializer, pubsub: pubsub}) do
     push
     |> Mapper.to_recorded_event(serializer)

@@ -91,24 +91,37 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   def handle_info(
         {_, Persistent.read_resp() = read_resp},
         %State{
+          conn: conn,
+          subscription: subscription,
           subscriber: subscriber,
           serializer: serializer
         } = state
       ) do
-    event = Mapper.to_spear_event(read_resp)
-    Logger.debug(fn -> describe(state) <> " received event: #{inspect(event)}" end)
+    case Mapper.to_spear_event(read_resp) do
+      # Some events are not skipped even if the filter is set, this is a workaround for this issue.
+      # For instance when a stream is deleted, the subscription receives a deleted system event.
 
-    %RecordedEvent{event_number: event_number} =
-      recorded_event = Mapper.to_recorded_event(event, serializer)
+      %Spear.Event{type: "$>", id: event_id} = event ->
+        Logger.debug(fn -> describe(state) <> " skipping event: #{inspect(event)}" end)
+        :ok = Spear.ack(conn, subscription, [event_id])
 
-    send(subscriber, {:events, [recorded_event]})
+        {:noreply, state}
 
-    {:noreply,
-     %State{
-       state
-       | last_seen_event_id: event_id_to_ack(event),
-         last_seen_event_number: event_number
-     }}
+      event ->
+        Logger.debug(fn -> describe(state) <> " received event: #{inspect(event)}" end)
+
+        %RecordedEvent{event_number: event_number} =
+          recorded_event = Mapper.to_recorded_event(event, serializer)
+
+        send(subscriber, {:events, [recorded_event]})
+
+        {:noreply,
+         %State{
+           state
+           | last_seen_event_id: event_id_to_ack(event),
+             last_seen_event_number: event_number
+         }}
+    end
   end
 
   @impl GenServer
