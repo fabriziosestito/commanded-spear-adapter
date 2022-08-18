@@ -69,7 +69,7 @@ defmodule Commanded.EventStore.Adapters.Spear.EventPublisher do
   end
 
   def handle_info(:retry, state) do
-    {:ok, state, {:continue, :subscribe}}
+    {:noreply, state, {:continue, :subscribe}}
   end
 
   defp process_push(push, %State{serializer: serializer, pubsub: pubsub}) do
