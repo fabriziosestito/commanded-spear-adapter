@@ -29,6 +29,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Supervisor do
 
     children = [
       {Registry, keys: :duplicate, name: pubsub_name, partitions: 1},
+      {Spear.Connection, Keyword.merge(spear_config, name: conn_name)},
       %{
         id: EventPublisher,
         start:
@@ -41,7 +42,6 @@ defmodule Commanded.EventStore.Adapters.Spear.Supervisor do
         shutdown: 5000,
         type: :worker
       },
-      {Spear.Connection, Keyword.merge(spear_config, name: conn_name)},
       {SubscriptionsSupervisor, name: subscriptions_name}
     ]
 
