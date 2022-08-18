@@ -28,16 +28,23 @@ defmodule Commanded.EventStore.Adapters.Spear.EventPublisher do
 
   @impl GenServer
   def init(%State{} = state) do
-    GenServer.cast(self(), :subscribe)
-
-    {:ok, state}
+    {:ok, state, {:continue, :subscribe}}
   end
 
   @impl GenServer
-  def handle_cast(:subscribe, %State{conn: conn, stream_name: stream_name} = state) do
-    {:ok, subscription} = Spear.subscribe(conn, self(), stream_name, raw?: true)
+  def handle_continue(:subscribe, %State{conn: conn, stream_name: stream_name} = state) do
+    case Spear.subscribe(conn, self(), stream_name, raw?: true) do
+      {:ok, subscription} ->
+        {:noreply, %State{state | subscription: subscription}}
 
-    {:noreply, %State{state | subscription: subscription}}
+      {:error, reason} ->
+        Logger.warn(
+          "Cannot subscribe to #{stream_name} (reason: #{reason}). Will retry in #{@reconnect_delay} ms."
+        )
+
+        Process.send_after(self(), :retry, @reconnect_delay)
+        {:noreply, state}
+    end
   end
 
   @impl GenServer
@@ -56,10 +63,13 @@ defmodule Commanded.EventStore.Adapters.Spear.EventPublisher do
       "Subscription to EventStore is down (reason: #{reason}). Will retry in #{@reconnect_delay} ms."
     )
 
-    Process.sleep(@reconnect_delay)
-    GenServer.cast(self(), :subscribe)
+    Process.send_after(self(), :retry, @reconnect_delay)
 
     {:noreply, state}
+  end
+
+  def handle_info(:retry, state) do
+    {:ok, state, {:continue, :subscribe}}
   end
 
   defp process_push(push, %State{serializer: serializer, pubsub: pubsub}) do
