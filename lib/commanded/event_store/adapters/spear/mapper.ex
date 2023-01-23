@@ -83,10 +83,14 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
     %RecordedEvent{data: snapshot} = event
 
     data =
-      snapshot.source_type
-      |> String.to_existing_atom()
-      |> struct(snapshot.data)
-      |> JsonDecoder.decode()
+      if is_struct(snapshot.data) do
+        snapshot.data
+      else
+        snapshot.source_type
+        |> String.to_existing_atom()
+        |> struct(snapshot.data)
+        |> JsonDecoder.decode()
+      end
 
     %SnapshotData{snapshot | data: data, created_at: event.created_at}
   end
