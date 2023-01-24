@@ -79,9 +79,11 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
     |> Spear.Event.to_proposed_message(%{content_type => &serializer.serialize/1})
   end
 
-  def to_snapshot_data(%RecordedEvent{} = event) do
-    %RecordedEvent{data: snapshot} = event
+  def to_snapshot_data(%RecordedEvent{data: %SnapshotData{} = snapshot} = event) do
+    %SnapshotData{snapshot | created_at: event.created_at}
+  end
 
+  def to_snapshot_data(%RecordedEvent{data: snapshot} = event) do
     data =
       snapshot.source_type
       |> String.to_existing_atom()
