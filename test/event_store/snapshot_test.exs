@@ -10,7 +10,7 @@ defmodule Commanded.EventStore.Adapters.Spear.SnapshotTest do
   } do
     event_store_meta =
       event_store_meta
-      |> Map.replace!(:serializer, Infra.TermSerializer)
+      |> Map.replace!(:serializer, Spear.TermSerializer)
       |> Map.put(:content_type, "application/vnd.erlang-term-format")
 
     snapshot = build_snapshot_data(100)
