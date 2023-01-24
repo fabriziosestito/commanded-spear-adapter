@@ -4,7 +4,7 @@ defmodule Commanded.EventStore.Adapters.Spear.SnapshotTest do
   use Commanded.SpearTestCase
   use Commanded.EventStore.SnapshotTestCase, event_store: Spear
 
-  test "persists using serializer", %{
+  test "works with term serializer", %{
     event_store: event_store,
     event_store_meta: event_store_meta
   } do
