@@ -37,9 +37,8 @@ defmodule Commanded.EventStore.Adapters.Spear.Mixfile do
 
   defp deps do
     [
-      {:commanded, "~> 1.3"},
+      {:commanded, "~> 1.4.1"},
       {:spear, "~> 1.0"},
-
       # Test & build tooling
       {:ex_doc, "~> 0.21", only: :dev},
       {:mox, "~> 1.0", only: :test},

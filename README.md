@@ -73,11 +73,6 @@ You **must** run the Event Store with all projections _enabled_ and standard pro
 
 Use the `--run-projections=all --start-standard-projections=true` flags when running the Event Store executable.
 
-### TODO
-
-- [ ] Fix flaky subscription stop/resume tests
-- [ ] Commanded 1.4.0-rc.0 concurrent subscribers and partitioning compatibility
-
 ### Credits
 
 - [Ben Smith](https://github.com/slashdotdash/) for [commanded](https://github.com/commanded/commanded) and [commanded-extreme-adapter](https://github.com/commanded/commanded-extreme-adapter)
