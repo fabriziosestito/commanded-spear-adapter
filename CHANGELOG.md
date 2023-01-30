@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.1.2](https://github.com/fabriziosestito/commanded-spear-adapter/tree/v0.1.2) (2023-01-30)
+
+[Full Changelog](https://github.com/fabriziosestito/commanded-spear-adapter/compare/v0.1.1...v0.1.2)
+
+- Fix reading snapshot with term serializer [\#18](https://github.com/fabriziosestito/commanded-spear-adapter/pull/18) ([dvic](https://github.com/dvic))
+
 ## [v0.1.1](https://github.com/fabriziosestito/commanded-spear-adapter/tree/v0.1.1) (2022-08-19)
 
 [Full Changelog](https://github.com/fabriziosestito/commanded-spear-adapter/compare/v0.1.0...v0.1.1)
