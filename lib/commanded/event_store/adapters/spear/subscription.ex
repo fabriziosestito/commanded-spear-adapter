@@ -55,6 +55,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
 
   @impl GenServer
   def init(%State{subscriber: subscriber} = state) do
+    Process.flag(:trap_exit, true)
     send(self(), :subscribe)
 
     {:ok, %State{state | subscriber_ref: Process.monitor(subscriber)}}
@@ -142,6 +143,14 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
     Logger.debug(fn -> describe(state) <> " down due to: #{inspect(reason)} (subscription)" end)
 
     {:stop, {:shutdown, :subscription_shutdown}, state}
+  end
+
+  @impl GenServer
+  def terminate(_, state) do
+    # Fixes commanded tests
+    Process.sleep(1_000)
+
+    state
   end
 
   defp subscribe(%State{} = state) do
