@@ -39,6 +39,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Mixfile do
     [
       {:commanded, "~> 1.4.1"},
       {:spear, "~> 1.0"},
+      {:elixir_uuid, "~> 1.2"},
       # Test & build tooling
       {:ex_doc, "~> 0.21", only: :dev},
       {:mox, "~> 1.0", only: :test},
