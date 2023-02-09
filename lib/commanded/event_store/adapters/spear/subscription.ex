@@ -31,6 +31,10 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   Start a process to create and connect a persistent connection to the Event Store
   """
   def start_link(conn, stream, subscription_name, subscriber, serializer, opts) do
+    if Keyword.get(opts, :partition_by) do
+      Logger.warn("Spear does not support partitioning. The partition_by option will be ignored.")
+    end
+
     state = %State{
       conn: conn,
       stream: stream,
