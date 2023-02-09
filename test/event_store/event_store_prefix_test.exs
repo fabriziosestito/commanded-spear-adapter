@@ -7,8 +7,7 @@ defmodule Commanded.EventStore.Adapters.Spear.EventStorePrefixTest do
   def start_event_store(config) do
     config =
       Keyword.update!(config, :prefix, fn prefix ->
-        uuid = String.replace(Commanded.UUID.uuid4(), "-", "")
-        "commandedtest" <> prefix <> uuid
+        "commandedtest" <> prefix <> Test.UUID.uuid4()
       end)
 
     SpearTestCase.start_event_store(config)

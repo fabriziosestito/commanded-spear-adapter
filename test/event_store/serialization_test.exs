@@ -20,7 +20,7 @@ defmodule Commanded.EventStore.Adapters.Spear.SerializationTest do
   end
 
   test "should append and stream events in erlang term", %{event_store_meta: event_store_meta} do
-    stream = UUID.uuid4()
+    stream = Test.UUID.uuid4()
 
     data = %{
       tonio: "tonino"
@@ -31,8 +31,8 @@ defmodule Commanded.EventStore.Adapters.Spear.SerializationTest do
     }
 
     event = %EventData{
-      causation_id: UUID.uuid4(),
-      correlation_id: UUID.uuid4(),
+      causation_id: Test.UUID.uuid4(),
+      correlation_id: Test.UUID.uuid4(),
       event_type: "test",
       data: data,
       metadata: metadata
