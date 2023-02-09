@@ -16,7 +16,7 @@ defmodule Commanded.SpearTestCase do
       Keyword.merge(
         [
           serializer: Commanded.Serialization.JsonSerializer,
-          stream_prefix: "commandedtest" <> UUID.uuid4(:hex),
+          stream_prefix: "commandedtest" <> Test.UUID.uuid4(),
           spear: [
             connection_string: "esdb://localhost:2113"
           ]
