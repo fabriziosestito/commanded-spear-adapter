@@ -32,7 +32,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   """
   def start_link(conn, stream, subscription_name, subscriber, serializer, opts) do
     if Keyword.get(opts, :partition_by) do
-      Logger.warn("Spear does not support partitioning. The partition_by option will be ignored.")
+      raise "commanded_spear_adapter does not support partition_by"
     end
 
     state = %State{
