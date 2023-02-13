@@ -60,9 +60,9 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   @impl GenServer
   def init(%State{subscriber: subscriber} = state) do
     Process.flag(:trap_exit, true)
-    send(self(), :subscribe)
+    state = %State{state | subscriber_ref: Process.monitor(subscriber)}
 
-    {:ok, %State{state | subscriber_ref: Process.monitor(subscriber)}}
+    {:ok, state, {:continue, :subscribe}}
   end
 
   @impl GenServer
@@ -83,7 +83,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   end
 
   @impl GenServer
-  def handle_info(:subscribe, state) do
+  def handle_continue(:subscribe, state) do
     Logger.debug(fn ->
       describe(state) <>
         " to stream: #{inspect(state.stream)}, start from: #{inspect(state.start_from)}"
