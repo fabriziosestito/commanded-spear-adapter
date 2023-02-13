@@ -27,6 +27,8 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
     subscribed?: false
   ]
 
+  @reconnect_delay 1_000
+
   @doc """
   Start a process to create and connect a persistent connection to the Event Store
   """
@@ -144,9 +146,18 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
         {:eos, subscription, reason},
         %State{subscription: subscription} = state
       ) do
-    Logger.debug(fn -> describe(state) <> " down due to: #{inspect(reason)} (subscription)" end)
+    Logger.warn(fn ->
+      describe(state) <>
+        " down due to: #{inspect(reason)} (subscription). Will retry in #{@reconnect_delay} ms."
+    end)
 
-    {:stop, {:shutdown, :subscription_shutdown}, state}
+    Process.send_after(self(), :retry, @reconnect_delay)
+
+    {:noreply, state}
+  end
+
+  def handle_info(:retry, state) do
+    {:noreply, state, {:continue, :subscribe}}
   end
 
   @impl GenServer
