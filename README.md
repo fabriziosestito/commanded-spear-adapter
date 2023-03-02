@@ -1,3 +1,7 @@
+[![CI](https://github.com/fabriziosestito/commanded-spear-adapter/actions/workflows/test.yml/badge.svg)](https://github.com/fabriziosestito/commanded-spear-adapter/actions/workflows/test.yml)
+[![Hex.pm](https://img.shields.io/hexpm/v/commanded_spear_adapter.svg)](https://hex.pm/packages/commanded_spear_adapter)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-purple.svg)](https://hexdocs.pm/commanded_spear_adapter/)
+
 # Spear EventStoreDB adapter for Commanded
 
 Commanded EvenstoreDB adapter based on [spear](https://github.com/NFIBrokerage/spear).
