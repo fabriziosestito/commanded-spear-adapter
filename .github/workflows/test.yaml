@@ -23,7 +23,7 @@ jobs:
         ports: ["2113:2113"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
