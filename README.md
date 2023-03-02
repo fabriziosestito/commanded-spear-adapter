@@ -23,7 +23,7 @@ The package can be installed from hex as follows.
 
    ```elixir
    def deps do
-     [{:commanded_spear_adapter, "~> 0.1"}]
+     [{:commanded_spear_adapter, "~> 0.2"}]
    end
    ```
 
