@@ -37,7 +37,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Mixfile do
 
   defp deps do
     [
-      {:commanded, github: "fabriziosestito/commanded", branch: "tag-partition-test"},
+      {:commanded, "~> 1.4"},
       {:spear, "~> 1.0"},
       # Test & build tooling
       {:ex_doc, "~> 0.21", only: :dev},
