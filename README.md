@@ -1,4 +1,4 @@
-[![CI](https://github.com/fabriziosestito/commanded-spear-adapter/actions/workflows/test.yml/badge.svg)](https://github.com/fabriziosestito/commanded-spear-adapter/actions/workflows/test.yml)
+[![CI](https://github.com/fabriziosestito/commanded-spear-adapter/actions/workflows/test.yaml/badge.svg)](https://github.com/fabriziosestito/commanded-spear-adapter/actions/workflows/test.yaml)
 [![Hex.pm](https://img.shields.io/hexpm/v/commanded_spear_adapter.svg)](https://hex.pm/packages/commanded_spear_adapter)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-purple.svg)](https://hexdocs.pm/commanded_spear_adapter/)
 

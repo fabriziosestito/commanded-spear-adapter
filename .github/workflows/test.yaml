@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        otp: ["24.0"]
-        elixir: ["1.13.4"]
+        otp: ["25.0"]
+        elixir: ["1.14.3"]
 
     services:
       eventstore:
