@@ -42,7 +42,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Mixfile do
       # Test & build tooling
       {:ex_doc, "~> 0.21", only: :dev},
       {:mox, "~> 1.0", only: :test},
-      {:httpoison, "~> 1.8", only: :test},
+      {:httpoison, "~> 2.0", only: :test},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
     ]
