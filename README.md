@@ -54,6 +54,14 @@ The package can be installed from hex as follows.
 
    **Note:** Stream prefix _must not_ contain a dash character ("-").
 
+### Partition
+
+This adapter does not support partitioning via the [`partition_by`](https://hexdocs.pm/commanded/Commanded.Event.Handler.html#partition_by/1) option.
+
+### Multi-node setup
+
+`commanded_spear_adapter` uses Erlang's `:global` registry to prevent duplicate subscriptions by stream/name.
+
 ### Use a serializer other than JSON
 
 To serialize and deserialize events in formats other than JSON, you must specify the content-type of the event body.
