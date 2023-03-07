@@ -30,6 +30,7 @@ defmodule Commanded.EventStore.Adapters.Spear.SubscriptionsSupervisor do
 
     spec =
       subscription_spec(
+        event_store,
         conn,
         stream,
         subscription_name,
@@ -79,6 +80,7 @@ defmodule Commanded.EventStore.Adapters.Spear.SubscriptionsSupervisor do
   end
 
   defp subscription_spec(
+         event_store,
          conn,
          stream,
          subscription_name,
@@ -88,6 +90,7 @@ defmodule Commanded.EventStore.Adapters.Spear.SubscriptionsSupervisor do
          index
        ) do
     start_args = [
+      event_store,
       conn,
       stream,
       subscription_name,

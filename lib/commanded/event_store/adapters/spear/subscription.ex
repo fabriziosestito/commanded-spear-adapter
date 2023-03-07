@@ -30,7 +30,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   @doc """
   Start a process to create and connect a persistent connection to the Event Store
   """
-  def start_link(conn, stream, subscription_name, subscriber, serializer, opts) do
+  def start_link(event_store, conn, stream, subscription_name, subscriber, serializer, opts) do
     if Keyword.get(opts, :partition_by) do
       raise "commanded_spear_adapter does not support partition_by"
     end
@@ -47,9 +47,9 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
     }
 
     # Prevent duplicate subscriptions by stream/name
-    name = {:global, {__MODULE__, stream, subscription_name, Keyword.get(opts, :index, 1)}}
+    name = {event_store, __MODULE__, stream, subscription_name, Keyword.get(opts, :index, 1)}
 
-    GenServer.start_link(__MODULE__, state, name: name)
+    GenServer.start_link(__MODULE__, state, name: {:global, name})
   end
 
   @doc """
