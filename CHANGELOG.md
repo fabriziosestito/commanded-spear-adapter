@@ -1,5 +1,21 @@
 # Changelog
 
+## [v0.2.1](https://github.com/fabriziosestito/commanded-spear-adapter/tree/v0.2.1) (2023-03-08)
+
+[Full Changelog](https://github.com/fabriziosestito/commanded-spear-adapter/compare/v0.2.0...v0.2.1)
+
+- subscription name registration [\#39](https://github.com/fabriziosestito/commanded-spear-adapter/issues/39)
+
+- Subscriptions without using Persistent Subscriptions for Ordering Guarantee [\#38](https://github.com/fabriziosestito/commanded-spear-adapter/issues/38)
+
+- Include the event store name in the subscription genserver name [\#40](https://github.com/fabriziosestito/commanded-spear-adapter/pull/40) ([dvic](https://github.com/dvic))
+- Bump spear from 1.1.0 to 1.3.0 [\#37](https://github.com/fabriziosestito/commanded-spear-adapter/pull/37) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump credo from 1.6.4 to 1.6.7 [\#36](https://github.com/fabriziosestito/commanded-spear-adapter/pull/36) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump dialyxir from 1.1.0 to 1.2.0 [\#35](https://github.com/fabriziosestito/commanded-spear-adapter/pull/35) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump httpoison from 1.8.1 to 2.0.0 [\#34](https://github.com/fabriziosestito/commanded-spear-adapter/pull/34) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/checkout from 2 to 3 [\#33](https://github.com/fabriziosestito/commanded-spear-adapter/pull/33) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/cache from 2 to 3 [\#32](https://github.com/fabriziosestito/commanded-spear-adapter/pull/32) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v0.2.0](https://github.com/fabriziosestito/commanded-spear-adapter/tree/v0.2.0) (2023-03-02)
 
 [Full Changelog](https://github.com/fabriziosestito/commanded-spear-adapter/compare/v0.1.2...v0.2.0)
@@ -10,13 +26,6 @@
 - Add partition\_by documentation [\#7](https://github.com/fabriziosestito/commanded-spear-adapter/issues/7)
 - Clarify concurrency and multi-node setup in README [\#4](https://github.com/fabriziosestito/commanded-spear-adapter/issues/4)
 
-- Bump httpoison from 1.8.1 to 2.0.0 [\#31](https://github.com/fabriziosestito/commanded-spear-adapter/pull/31) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bump ex\_doc from 0.28.4 to 0.29.2 [\#30](https://github.com/fabriziosestito/commanded-spear-adapter/pull/30) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bump credo from 1.6.4 to 1.6.7 [\#29](https://github.com/fabriziosestito/commanded-spear-adapter/pull/29) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bump dialyxir from 1.1.0 to 1.2.0 [\#28](https://github.com/fabriziosestito/commanded-spear-adapter/pull/28) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bump spear from 1.1.0 to 1.3.0 [\#27](https://github.com/fabriziosestito/commanded-spear-adapter/pull/27) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bump actions/checkout from 2 to 3 [\#26](https://github.com/fabriziosestito/commanded-spear-adapter/pull/26) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bump actions/cache from 2 to 3 [\#25](https://github.com/fabriziosestito/commanded-spear-adapter/pull/25) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Raise instead of warning if partition\_by is passed to the subscription [\#22](https://github.com/fabriziosestito/commanded-spear-adapter/pull/22) ([fabriziosestito](https://github.com/fabriziosestito))
 - Fix tests using UUID.uuid4\(\) [\#21](https://github.com/fabriziosestito/commanded-spear-adapter/pull/21) ([fabriziosestito](https://github.com/fabriziosestito))
 - Warn user that :partition\_by is not supported, fix tests [\#20](https://github.com/fabriziosestito/commanded-spear-adapter/pull/20) ([fabriziosestito](https://github.com/fabriziosestito))
