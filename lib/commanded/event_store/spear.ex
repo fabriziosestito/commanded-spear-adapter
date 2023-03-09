@@ -176,8 +176,11 @@ defmodule Commanded.EventStore.Adapters.Spear do
     Logger.debug(fn -> "Spear event store read snapshot from stream: " <> inspect(stream) end)
 
     case execute_read(adapter_meta, stream, :start, 1, :backwards) do
-      {:ok, [recorded_event]} ->
-        {:ok, Mapper.to_snapshot_data(recorded_event)}
+      {:ok, stream} ->
+        case Enum.take(stream, 1) do
+          [recorded_event] -> {:ok, Mapper.to_snapshot_data(recorded_event)}
+          [] -> {:error, :snapshot_not_found}
+        end
 
       {:error, :stream_not_found} ->
         {:error, :snapshot_not_found}
@@ -253,7 +256,7 @@ defmodule Commanded.EventStore.Adapters.Spear do
          adapter_meta,
          stream,
          start_version,
-         count,
+         chunk_size,
          direction
        ) do
     conn = conn_name(adapter_meta)
@@ -263,15 +266,14 @@ defmodule Commanded.EventStore.Adapters.Spear do
            raw?: true,
            from: start_version,
            direction: direction,
-           max_count: count
+           chunk_size: chunk_size
          ) do
       [] ->
         {:error, :stream_not_found}
 
       events ->
         {:ok,
-         events
-         |> Enum.map(fn read_resp ->
+         Stream.map(events, fn read_resp ->
            read_resp
            |> Mapper.to_spear_event()
            |> Mapper.to_recorded_event(serializer)

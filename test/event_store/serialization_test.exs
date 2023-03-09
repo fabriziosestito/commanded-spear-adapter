@@ -41,6 +41,6 @@ defmodule Commanded.EventStore.Adapters.Spear.SerializationTest do
     :ok = Spear.append_to_stream(event_store_meta, stream, 0, [event])
 
     assert [%RecordedEvent{data: ^data, metadata: ^metadata}] =
-             Spear.stream_forward(event_store_meta, stream)
+             Spear.stream_forward(event_store_meta, stream) |> Enum.to_list()
   end
 end
