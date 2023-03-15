@@ -1,16 +1,18 @@
 defmodule Commanded.EventStore.Adapters.Spear.Config do
   @moduledoc false
 
-  def all_stream(config), do: "$ce-" <> stream_prefix(config)
+  def all_stream(config) do
+    if stream_prefix = stream_prefix(config) do
+      "$ce-" <> stream_prefix
+    else
+      :all
+    end
+  end
 
   def stream_prefix(config) do
-    prefix =
-      Keyword.get(config, :stream_prefix) ||
-        raise ArgumentError, "expects :stream_prefix to be configured in environment"
-
-    case String.contains?(prefix, "-") do
-      true -> raise ArgumentError, ":stream_prefix cannot contain a dash (\"-\")"
-      false -> prefix
+    if prefix = Keyword.get(config, :stream_prefix) do
+      validate_prefix!(prefix)
+      prefix
     end
   end
 
@@ -21,5 +23,13 @@ defmodule Commanded.EventStore.Adapters.Spear.Config do
 
   def content_type(config) do
     Keyword.get(config, :content_type, "application/json")
+  end
+
+  defp validate_prefix!(prefix) do
+    if String.contains?(prefix, "-") do
+      raise ArgumentError, ":stream_prefix cannot contain a dash (\"-\")"
+    end
+
+    :ok
   end
 end

@@ -23,6 +23,7 @@ defmodule Commanded.EventStore.Adapters.Spear.SubscriptionsSupervisor do
         subscription_name,
         subscriber,
         serializer,
+        stream_prefix,
         opts,
         index \\ 0
       ) do
@@ -36,6 +37,7 @@ defmodule Commanded.EventStore.Adapters.Spear.SubscriptionsSupervisor do
         subscription_name,
         subscriber,
         serializer,
+        stream_prefix,
         opts,
         index
       )
@@ -60,6 +62,7 @@ defmodule Commanded.EventStore.Adapters.Spear.SubscriptionsSupervisor do
               subscription_name,
               subscriber,
               serializer,
+              stream_prefix,
               opts,
               index + 1
             )
@@ -86,6 +89,7 @@ defmodule Commanded.EventStore.Adapters.Spear.SubscriptionsSupervisor do
          subscription_name,
          subscriber,
          serializer,
+         stream_prefix,
          opts,
          index
        ) do
@@ -96,6 +100,7 @@ defmodule Commanded.EventStore.Adapters.Spear.SubscriptionsSupervisor do
       subscription_name,
       subscriber,
       serializer,
+      stream_prefix,
       Keyword.put(opts, :index, index)
     ]
 

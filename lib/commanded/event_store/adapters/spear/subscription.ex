@@ -18,6 +18,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
     :name,
     :retry_interval,
     :serializer,
+    :stream_prefix,
     :stream,
     :start_from,
     :concurrency_limit,
@@ -30,7 +31,16 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   @doc """
   Start a process to create and connect a persistent connection to the Event Store
   """
-  def start_link(event_store, conn, stream, subscription_name, subscriber, serializer, opts) do
+  def start_link(
+        event_store,
+        conn,
+        stream,
+        subscription_name,
+        subscriber,
+        serializer,
+        stream_prefix,
+        opts
+      ) do
     if Keyword.get(opts, :partition_by) do
       raise "commanded_spear_adapter does not support partition_by"
     end
@@ -40,6 +50,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
       stream: stream,
       name: subscription_name,
       serializer: serializer,
+      stream_prefix: stream_prefix,
       subscriber: subscriber,
       start_from: Keyword.get(opts, :start_from),
       concurrency_limit: Keyword.get(opts, :concurrency_limit, 1),
@@ -99,7 +110,8 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
           conn: conn,
           subscription: subscription,
           subscriber: subscriber,
-          serializer: serializer
+          serializer: serializer,
+          stream_prefix: stream_prefix
         } = state
       ) do
     case Mapper.to_spear_event(read_resp) do
@@ -116,7 +128,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
         Logger.debug(fn -> describe(state) <> " received event: #{inspect(event)}" end)
 
         %RecordedEvent{event_number: event_number} =
-          recorded_event = Mapper.to_recorded_event(event, serializer)
+          recorded_event = Mapper.to_recorded_event(event, serializer, stream_prefix)
 
         send(subscriber, {:events, [recorded_event]})
 

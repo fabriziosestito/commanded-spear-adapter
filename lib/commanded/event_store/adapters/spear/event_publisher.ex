@@ -13,14 +13,15 @@ defmodule Commanded.EventStore.Adapters.Spear.EventPublisher do
 
   @reconnect_delay 1_000
 
-  defstruct [:conn, :pubsub, :subscription, :stream_name, :serializer]
+  defstruct [:conn, :pubsub, :subscription, :stream_name, :serializer, :stream_prefix]
 
-  def start_link({conn, pubsub, stream_name, serializer}, opts \\ []) do
+  def start_link({conn, pubsub, stream_name, serializer, stream_prefix}, opts \\ []) do
     state = %State{
       conn: conn,
       pubsub: pubsub,
       stream_name: stream_name,
-      serializer: serializer
+      serializer: serializer,
+      stream_prefix: stream_prefix
     }
 
     GenServer.start_link(__MODULE__, state, opts)
@@ -33,7 +34,12 @@ defmodule Commanded.EventStore.Adapters.Spear.EventPublisher do
 
   @impl GenServer
   def handle_continue(:subscribe, %State{conn: conn, stream_name: stream_name} = state) do
-    case Spear.subscribe(conn, self(), stream_name, raw?: true) do
+    filter =
+      if stream_name == :all do
+        Spear.Filter.exclude_system_events()
+      end
+
+    case Spear.subscribe(conn, self(), stream_name, raw?: true, filter: filter) do
       {:ok, subscription} ->
         {:noreply, %State{state | subscription: subscription}}
 
@@ -48,6 +54,10 @@ defmodule Commanded.EventStore.Adapters.Spear.EventPublisher do
   end
 
   @impl GenServer
+  def handle_info({_ref, Streams.read_resp(content: {:checkpoint, _})}, state) do
+    {:noreply, state}
+  end
+
   def handle_info({_ref, Streams.read_resp() = read_resp}, state) do
     :ok =
       read_resp
@@ -78,9 +88,13 @@ defmodule Commanded.EventStore.Adapters.Spear.EventPublisher do
     :ok
   end
 
-  defp process_push(push, %State{serializer: serializer, pubsub: pubsub}) do
+  defp process_push(push, %State{
+         serializer: serializer,
+         stream_prefix: stream_prefix,
+         pubsub: pubsub
+       }) do
     push
-    |> Mapper.to_recorded_event(serializer)
+    |> Mapper.to_recorded_event(serializer, stream_prefix)
     |> publish(pubsub)
   end
 
