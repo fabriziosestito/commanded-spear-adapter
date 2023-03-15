@@ -6,9 +6,16 @@ defmodule TestUtils.EventStoreDBContainer do
   @http_port 2113
   @wait_strategy Docker.CommandWaitStrategy.new(["curl", "-f", "localhost:2113/ping"])
 
-  def new(image \\ "eventstore/eventstore:21.10.9-alpha-arm64v8", _opts \\ []) do
+  def new(_opts \\ []) do
+    image_flavour =
+      if System.get_env("CI") do
+        "bionic"
+      else
+        "alpha-arm64v8"
+      end
+
     Docker.Container.new(
-      image,
+      "eventstore/eventstore:22.10.1-#{image_flavour}",
       exposed_ports: [@http_port],
       environment: %{
         "EVENTSTORE_CLUSTER_SIZE" => 1,
