@@ -8,6 +8,8 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
     TypeProvider
   }
 
+  alias Commanded.EventStore.Adapters.Spear.SystemEvent
+
   alias Commanded.Serialization.JsonDecoder
 
   def to_spear_event(read_resp) do
@@ -23,6 +25,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
           body: body,
           type: type,
           metadata: %{
+            commit_position: commit_position,
             stream_revision: stream_revision,
             stream_name: stream_name,
             created: created,
@@ -32,34 +35,43 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
         },
         serializer
       ) do
-    event_number =
-      if link do
-        link.metadata.stream_revision + 1
+    {data, metadata} =
+      if String.starts_with?(type, "$") do
+        {%SystemEvent{data: body}, %{}}
       else
-        stream_revision + 1
-      end
+        metadata =
+          case custom_metadata do
+            none when none in [nil, ""] -> %{}
+            metadata -> serializer.deserialize(metadata, [])
+          end
 
-    metadata =
-      case custom_metadata do
-        none when none in [nil, ""] -> %{}
-        metadata -> serializer.deserialize(metadata, [])
+        data = serializer.deserialize(body, type: type)
+        {data, metadata}
       end
 
     {causation_id, metadata} = Map.pop(metadata, "$causationId")
     {correlation_id, metadata} = Map.pop(metadata, "$correlationId")
 
-    %RecordedEvent{
+    event = %RecordedEvent{
       event_id: id,
-      event_number: event_number,
+      event_number: commit_position,
       stream_id: to_stream_id(stream_name),
       stream_version: stream_revision + 1,
       causation_id: causation_id,
       correlation_id: correlation_id,
       event_type: type,
-      data: serializer.deserialize(body, type: type),
+      data: data,
       metadata: metadata,
       created_at: created
     }
+
+    if link do
+      metadata = Map.put(event.metadata, :link, to_recorded_event(link, serializer))
+
+      %{event | metadata: metadata}
+    else
+      event
+    end
   end
 
   def to_proposed_message(
