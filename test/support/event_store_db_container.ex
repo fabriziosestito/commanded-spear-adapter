@@ -1,4 +1,6 @@
 defmodule TestUtils.EventStoreDBContainer do
+  @moduledoc false
+
   alias Excontainers.{Container, ResourcesReaper}
 
   @http_port 2113
