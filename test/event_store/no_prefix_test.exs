@@ -41,6 +41,7 @@ defmodule Commanded.EventStore.Adapters.Spear.NoPrefixTest do
   end
 
   defp start_instance do
+    # TODO: use dyanmic connection string once #47 has been merged
     config = [
       serializer: Commanded.Serialization.JsonSerializer,
       spear: [connection_string: "esdb://localhost:2113"]
