@@ -205,6 +205,8 @@ defmodule Commanded.EventStore.Adapters.Spear do
     Spear.delete_stream(conn, stream)
   end
 
+  defp stream_name(adapter_meta, :all), do: Map.fetch!(adapter_meta, :all_stream)
+
   defp stream_name(adapter_meta, stream_uuid),
     do: Map.fetch!(adapter_meta, :stream_prefix) <> "-" <> stream_uuid
 
