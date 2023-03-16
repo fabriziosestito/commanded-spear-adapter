@@ -1,0 +1,12 @@
+name: Restore mtime
+description: Restores original modification dates from git
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run git-restore-mtime.sh
+      run: .github/actions/restore-mtime/git-restore-mtime.sh
+      shell: bash
+
+    # - run: find ./lib -type f -print0 | sort -z | xargs -0 ls -la
+    #   shell: bash

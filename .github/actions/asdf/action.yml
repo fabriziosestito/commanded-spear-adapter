@@ -1,0 +1,29 @@
+name: Install .tool-versions
+description: Install tools in .tool-versions
+
+outputs:
+  elixir:
+    value: ${{ steps.elixir.outputs.version }}
+    description: the Elixir version
+  erlang:
+    value: ${{ steps.erlang.outputs.version }}
+    description: the Erlang version
+
+runs:
+  using: "composite"
+  steps:
+    - name: Determine the elixir version
+      id: elixir
+      run: echo "version=$(cat ${{ github.workspace }}/.tool-versions | perl -nle 'if (/elixir (?:ref:v)?(\d+\.\d+(?:\.\d+))/g) { print $1; exit }')" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Determine the erlang version
+      id: erlang
+      run: echo "version=$(cat ${{ github.workspace }}/.tool-versions | perl -nle 'if (/erlang (\d+\.\d+(?:\.\d+))/g) { print $1; exit }')" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Elixir installation
+      uses: erlef/setup-beam@v1
+      with:
+        otp-version: ${{ steps.erlang.outputs.version }}
+        elixir-version: ${{ steps.elixir.outputs.version }}
