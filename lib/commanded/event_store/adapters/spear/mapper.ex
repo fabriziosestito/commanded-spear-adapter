@@ -103,7 +103,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
     }
 
     if link do
-      link_payload = link_payload = to_recorded_event(link, serializer, stream_prefix)
+      link_payload = to_recorded_event(link, serializer, stream_prefix)
 
       metadata = Map.put(event.metadata, :link, link_payload)
 
