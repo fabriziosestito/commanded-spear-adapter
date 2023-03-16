@@ -44,6 +44,9 @@ defmodule Commanded.EventStore.Adapters.Spear.StreamTest do
     insert(event_store_meta, conn, "b0", "teststream-b")
     insert_link(event_store_meta, conn, {0, "teststream-b"}, "stream_c")
 
+    # wait a bit because the $all projection is not synchronously built
+    :timer.sleep(1000)
+
     [first, second] =
       SpearAdapter.stream_forward(event_store_meta, :all)
       |> Enum.to_list()
