@@ -14,8 +14,8 @@ runs:
     - name: Determine the base cache key
       id: caches
       run: |
-        echo "base_key=elixir_version__${{ steps.elixir.outputs.version }}" >> $GITHUB_OUTPUT
-        echo "mix_lock_digest=mix_lock__${{ hashFiles(format('applications/{0}/mix.lock', inputs.app)) }}" >> $GITHUB_OUTPUT
+        echo "base_key=${{ steps.elixir.outputs.version }}" >> $GITHUB_OUTPUT
+        echo "mix_lock_digest=mix_lock__${{ hashFiles(format('{0}/{1}', github.workspace, 'mix.lock')) }}" >> $GITHUB_OUTPUT
         echo "src_digest=src__${{ hashFiles('config/**', 'lib/**', 'test/**') }}" >> $GITHUB_OUTPUT
       shell: bash
 
@@ -23,8 +23,8 @@ runs:
       uses: actions/cache@v3
       with:
         path: |
-          ${{ format('applications/{0}/_build', inputs.app) }}
-          ${{ format('applications/{0}/deps', inputs.app) }}
+          ./_build
+          ./deps
           ${{ steps.elixir.outputs.mix_home }}
 
         key: ${{ steps.caches.outputs.base_key }}-${{ steps.caches.outputs.mix_lock_digest }}-${{ steps.caches.outputs.src_digest }}
