@@ -1,5 +1,5 @@
 defmodule Commanded.EventStore.Adapters.Spear.StreamTest do
-  use Commanded.SpearTestCase
+  use Commanded.SpearTestCase, async: true
 
   alias Commanded.EventStore.Adapters.Spear, as: SpearAdapter
 

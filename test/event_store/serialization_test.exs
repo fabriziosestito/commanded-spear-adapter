@@ -1,12 +1,12 @@
 defmodule Commanded.EventStore.Adapters.Spear.SerializationTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   @moduletag eventstore_config: [
                serializer: Commanded.EventStore.Adapters.Spear.TermSerializer,
                content_type: "application/vnd.erlang-term-format"
              ]
 
-  use Commanded.SpearTestCase
+  use Commanded.SpearTestCase, async: true
 
   alias Commanded.EventStore.{
     EventData,
