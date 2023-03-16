@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: ["*"]
   push:
-    branches: ["master"]
+    branches: ["main"]
 
 jobs:
   build:
