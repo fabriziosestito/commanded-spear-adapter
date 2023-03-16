@@ -112,16 +112,16 @@ defmodule Commanded.EventStore.Adapters.Spear do
     stream_prefix = stream_prefix(adapter_meta)
     opts = subscription_options(opts, start_from)
 
-    SubscriptionsSupervisor.start_subscription(
-      event_store,
-      conn,
-      stream,
-      subscription_name,
-      subscriber,
-      serializer,
-      stream_prefix,
-      opts
-    )
+    SubscriptionsSupervisor.start_subscription(%{
+      event_store: event_store,
+      conn: conn,
+      stream: stream,
+      subscription_name: subscription_name,
+      subscriber: subscriber,
+      serializer: serializer,
+      stream_prefix: stream_prefix,
+      opts: opts
+    })
   end
 
   @impl Commanded.EventStore.Adapter
@@ -133,16 +133,16 @@ defmodule Commanded.EventStore.Adapters.Spear do
     stream_prefix = stream_prefix(adapter_meta)
     opts = subscription_options(opts, start_from)
 
-    SubscriptionsSupervisor.start_subscription(
-      event_store,
-      conn,
-      stream,
-      subscription_name,
-      subscriber,
-      serializer,
-      stream_prefix,
-      opts
-    )
+    SubscriptionsSupervisor.start_subscription(%{
+      event_store: event_store,
+      conn: conn,
+      stream: stream,
+      subscription_name: subscription_name,
+      subscriber: subscriber,
+      serializer: serializer,
+      stream_prefix: stream_prefix,
+      opts: opts
+    })
   end
 
   @impl Commanded.EventStore.Adapter
