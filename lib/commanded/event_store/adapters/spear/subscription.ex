@@ -76,7 +76,10 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
           last_seen_event_id: event_id
         } = state
       ) do
-    Logger.debug(fn -> describe(state) <> " ack event: #{inspect(event_number)}" end)
+    Logger.debug(fn ->
+      describe(state) <> " ack event: #{inspect(event_number)} #{inspect(event_id)}"
+    end)
+
     :ok = Spear.ack(conn, subscription, [event_id])
 
     {:reply, :ok, %State{state | last_seen_event_id: nil, last_seen_event_number: nil}}
@@ -105,8 +108,14 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
     case Mapper.to_spear_event(read_resp) do
       # Some events are not skipped even if the filter is set, this is a workaround for this issue.
       # For instance when a stream is deleted, the subscription receives a deleted system event.
-
       %Spear.Event{type: "$>", id: event_id} = event ->
+        Logger.debug(fn -> describe(state) <> " skipping event: #{inspect(event)}" end)
+        :ok = Spear.ack(conn, subscription, [event_id])
+
+        {:noreply, state}
+
+      # Same workaround as above, but for links.
+      %Spear.Event{link: %Spear.Event{id: event_id, type: "$>"} = event} ->
         Logger.debug(fn -> describe(state) <> " skipping event: #{inspect(event)}" end)
         :ok = Spear.ack(conn, subscription, [event_id])
 
