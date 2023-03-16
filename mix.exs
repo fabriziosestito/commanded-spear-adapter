@@ -1,7 +1,7 @@
 defmodule Commanded.EventStore.Adapters.Spear.Mixfile do
   use Mix.Project
 
-  @version "0.2.1"
+  @version "1.0.0-dev"
 
   def project do
     [
@@ -44,7 +44,9 @@ defmodule Commanded.EventStore.Adapters.Spear.Mixfile do
       {:mox, "~> 1.0", only: :test},
       {:httpoison, "~> 2.0", only: :test},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
+      {:excontainers, "~> 0.3.1", only: :test},
+      {:ex_check, "~> 0.15.0", only: [:dev, :test], runtime: false}
     ]
   end
 

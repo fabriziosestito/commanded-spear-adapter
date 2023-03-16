@@ -5,31 +5,33 @@ defmodule Commanded.SpearTestCase do
 
   alias Commanded.EventStore.Adapters.Spear
 
-  setup do
-    {:ok, event_store_meta} = start_event_store()
-
-    [event_store_meta: event_store_meta]
+  setup_all do
+    %{event_store_db_uri: _event_store_db_uri} = TestUtils.EventStoreDBContainer.start()
   end
 
-  def start_event_store(config \\ []) do
+  setup %{module: module, test: test, event_store_db_uri: event_store_db_uri} = ctx do
+    opts = Map.get(ctx, :eventstore_config, [])
+    start_event_store(module, Macro.to_string(test), event_store_db_uri, opts)
+  end
+
+  def start_event_store(name, stream_prefix, event_store_db_uri, opts \\ []) do
     config =
       Keyword.merge(
         [
+          name: name,
           serializer: Commanded.Serialization.JsonSerializer,
-          stream_prefix: "commandedtest" <> Test.UUID.uuid4(),
-          spear: [
-            connection_string: "esdb://localhost:2113"
-          ]
+          stream_prefix: stream_prefix,
+          spear: [connection_string: event_store_db_uri]
         ],
-        config
+        opts
       )
 
     {:ok, child_spec, event_store_meta} = Spear.child_spec(SpearApplication, config)
 
     for child <- child_spec do
-      start_supervised!(child)
+      start_link_supervised!(child)
     end
 
-    {:ok, event_store_meta}
+    %{event_store_meta: event_store_meta}
   end
 end

@@ -1,7 +1,7 @@
 defmodule Commanded.EventStore.Adapters.Spear.SnapshotTest do
   alias Commanded.EventStore.Adapters.Spear
 
-  use Commanded.SpearTestCase
+  use Commanded.SpearTestCase, async: true
   use Commanded.EventStore.SnapshotTestCase, event_store: Spear
 
   test "works with term serializer", %{
