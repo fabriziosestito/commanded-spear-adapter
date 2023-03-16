@@ -35,28 +35,33 @@ defmodule Commanded.EventStore.Adapters.Spear.StreamTest do
     assert %TestEvent{name: "bar"} = second
   end
 
-  @tag eventstore_config: [stream_prefix: nil]
-
-  test "parses the link type as Spear.Event", %{
+  test "parses the system type properly", %{
     event_store_meta: event_store_meta,
     event_store_db_uri: event_store_db_uri
   } do
     conn = start_link_supervised!({Spear.Connection, [connection_string: event_store_db_uri]})
 
-    insert(conn, "b0", "teststream-b")
-    insert_link(conn, {0, "teststream-b"}, "stream_c")
+    insert(event_store_meta, conn, "b0", "teststream-b")
+    insert_link(event_store_meta, conn, {0, "teststream-b"}, "stream_c")
 
     [first, second] =
       SpearAdapter.stream_forward(event_store_meta, :all)
       |> Enum.to_list()
 
+    stream_prefix = Map.fetch!(event_store_meta, :stream_prefix)
+    all_stream = "$ce-#{stream_prefix}"
+
     assert %RecordedEvent{
              stream_id: "teststream-b",
              stream_version: 1,
-             metadata: metadata
+             metadata: %{link: link}
            } = first
 
-    refute Map.has_key?(metadata, :link)
+    assert %RecordedEvent{
+             stream_id: ^all_stream,
+             stream_version: 1,
+             event_type: "$>"
+           } = link
 
     assert %RecordedEvent{
              stream_id: "teststream-b",
@@ -65,27 +70,31 @@ defmodule Commanded.EventStore.Adapters.Spear.StreamTest do
            } = second
 
     assert %RecordedEvent{
-             stream_id: "stream_c",
-             stream_version: 1,
+             stream_id: ^all_stream,
+             stream_version: 2,
              event_type: "$>"
            } = link
   end
 
-  defp insert(conn, name, stream) do
+  defp insert(event_store_meta, conn, name, stream) do
     event_type = "#{__MODULE__}.TestEvent"
     event = Spear.Event.new(event_type, %TestEvent{name: name})
 
-    assert Spear.append([event], conn, stream) == :ok
+    stream_prefixed = Map.fetch!(event_store_meta, :stream_prefix) <> "-" <> stream
+    assert Spear.append([event], conn, stream_prefixed) == :ok
     event
   end
 
-  defp insert_link(conn, {index, source_stream}, target_stream) do
+  defp insert_link(event_store_meta, conn, {index, source_stream}, target_stream) do
+    prefix = Map.fetch!(event_store_meta, :stream_prefix)
+
     event =
-      Spear.Event.new("$>", "#{index}@#{source_stream}",
+      Spear.Event.new("$>", "#{index}@#{prefix <> "-" <> source_stream}",
         content_type: "application/vnd.erlang-term-format"
       )
 
-    assert Spear.append([event], conn, target_stream) == :ok
+    target_stream_prefixed = prefix <> "-" <> target_stream
+    assert Spear.append([event], conn, target_stream_prefixed) == :ok
     event
   end
 end
