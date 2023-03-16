@@ -1,0 +1,34 @@
+name: Elixir build cache
+description: Restore Elixir build cache
+
+runs:
+  using: "composite"
+  steps:
+    - name: Store Elxir and OTP version + Mix home
+      id: elixir
+      run: |
+        echo "version=$(elixir -e 'IO.puts("elixir#{System.version()}_otp#{:erlang.system_info(:otp_release)}")')" >> $GITHUB_OUTPUT
+        echo "mix_home=$(elixir -e 'IO.puts(Mix.Utils.mix_home())')" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Determine the base cache key
+      id: caches
+      run: |
+        echo "base_key=elixir_version__${{ steps.elixir.outputs.version }}" >> $GITHUB_OUTPUT
+        echo "mix_lock_digest=mix_lock__${{ hashFiles(format('applications/{0}/mix.lock', inputs.app)) }}" >> $GITHUB_OUTPUT
+        echo "src_digest=src__${{ hashFiles('config/**', 'lib/**', 'test/**') }}" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Elixir cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ${{ format('applications/{0}/_build', inputs.app) }}
+          ${{ format('applications/{0}/deps', inputs.app) }}
+          ${{ steps.elixir.outputs.mix_home }}
+
+        key: ${{ steps.caches.outputs.base_key }}-${{ steps.caches.outputs.mix_lock_digest }}-${{ steps.caches.outputs.src_digest }}
+        restore-keys: |
+          ${{ steps.caches.outputs.base_key }}-${{ steps.caches.outputs.mix_lock_digest }}-${{ steps.caches.outputs.src_digest }}
+          ${{ steps.caches.outputs.base_key }}-${{ steps.caches.outputs.mix_lock_digest }}
+          ${{ steps.caches.outputs.base_key }}
