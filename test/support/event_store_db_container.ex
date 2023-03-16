@@ -6,16 +6,19 @@ defmodule TestUtils.EventStoreDBContainer do
   @http_port 2113
   @wait_strategy Docker.CommandWaitStrategy.new(["curl", "-f", "localhost:2113/ping"])
 
-  def new(_opts \\ []) do
-    image_flavour =
-      if System.get_env("CI") do
-        "bionic"
-      else
-        "alpha-arm64v8"
+  def new(opts \\ []) do
+    image_version = Keyword.get(opts, :version, "22.10.1")
+
+    image_os =
+      case :erlang.system_info(:system_architecture) |> IO.iodata_to_binary() do
+        "aarch64" <> _ -> "alpha-arm64v8"
+        _ -> "bionic"
       end
 
+    image_tag = "eventstore/eventstore:#{image_version}-#{image_os}"
+
     Docker.Container.new(
-      "eventstore/eventstore:22.10.1-#{image_flavour}",
+      image_tag,
       exposed_ports: [@http_port],
       environment: %{
         "EVENTSTORE_CLUSTER_SIZE" => 1,
