@@ -11,7 +11,11 @@ defmodule Commanded.SpearTestCase do
 
   setup %{module: module, test: test, event_store_db_uri: event_store_db_uri} = ctx do
     opts = Map.get(ctx, :eventstore_config, [])
-    start_event_store(module, Macro.to_string(test), event_store_db_uri, opts)
+
+    stream_prefix =
+      test |> Atom.to_string() |> String.replace(" ", "_") |> String.replace("-", "_")
+
+    start_event_store(module, stream_prefix, event_store_db_uri, opts)
   end
 
   def start_event_store(name, stream_prefix, event_store_db_uri, opts \\ []) do

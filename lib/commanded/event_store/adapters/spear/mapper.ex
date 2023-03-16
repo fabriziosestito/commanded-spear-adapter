@@ -30,7 +30,8 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
           },
           link: link
         },
-        serializer
+        serializer,
+        stream_prefix
       ) do
     event_number =
       if link do
@@ -51,7 +52,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
     %RecordedEvent{
       event_id: id,
       event_number: event_number,
-      stream_id: to_stream_id(stream_name),
+      stream_id: to_stream_id(stream_prefix, stream_name),
       stream_version: stream_revision + 1,
       causation_id: causation_id,
       correlation_id: correlation_id,
@@ -114,11 +115,23 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
     |> serializer.serialize()
   end
 
-  defp to_stream_id(stream_name) do
+  defp to_stream_id(stream_prefix, stream_name)
+
+  defp to_stream_id(nil, stream_name) do
     stream_name
-    |> String.split("-")
-    |> Enum.drop(1)
-    |> Enum.join("-")
+  end
+
+  defp to_stream_id(stream_prefix, stream_name) when is_binary(stream_prefix) do
+    cond do
+      String.starts_with?(stream_name, "#{stream_prefix}snapshot-") ->
+        String.replace_leading(stream_name, "#{stream_prefix}snapshot-", "")
+
+      String.starts_with?(stream_name, "#{stream_prefix}-") ->
+        String.replace_leading(stream_name, "#{stream_prefix}-", "")
+
+      true ->
+        stream_name
+    end
   end
 
   defp add_causation_id(metadata, causation_id),

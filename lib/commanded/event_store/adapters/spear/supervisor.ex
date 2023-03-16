@@ -17,6 +17,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Supervisor do
   @impl Supervisor
   def init(config) do
     all_stream = Config.all_stream(config)
+    stream_prefix = Config.stream_prefix(config)
     spear_config = Keyword.get(config, :spear)
     serializer = Config.serializer(config)
 
@@ -35,7 +36,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Supervisor do
         start:
           {EventPublisher, :start_link,
            [
-             {conn_name, pubsub_name, all_stream, serializer},
+             {conn_name, pubsub_name, all_stream, serializer, stream_prefix},
              [name: event_publisher_name]
            ]},
         restart: :permanent,
