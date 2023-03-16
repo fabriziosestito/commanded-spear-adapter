@@ -34,8 +34,6 @@ defmodule Commanded.EventStore.Adapters.Spear.NoPrefixTest do
 
     assert [%RecordedEvent{} = first, %RecordedEvent{} = second] =
              SpearAdapter.stream_forward(event_store_meta, :all)
-             # ignore other streams when running tests locally multiple times
-             |> Stream.filter(fn event -> event.stream_id in [stream0, stream1] end)
              |> Enum.to_list()
 
     assert first.stream_id == stream0
