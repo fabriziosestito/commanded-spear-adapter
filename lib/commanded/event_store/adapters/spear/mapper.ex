@@ -8,8 +8,6 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
     TypeProvider
   }
 
-  alias Commanded.EventStore.Adapters.Spear.SystemEvent
-
   alias Commanded.Serialization.JsonDecoder
 
   def to_spear_event(read_resp) do
@@ -35,19 +33,13 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
         },
         serializer
       ) do
-    {data, metadata} =
-      if String.starts_with?(type, "$") do
-        {%SystemEvent{data: body}, %{}}
-      else
-        metadata =
-          case custom_metadata do
-            none when none in [nil, ""] -> %{}
-            metadata -> serializer.deserialize(metadata, [])
-          end
-
-        data = serializer.deserialize(body, type: type)
-        {data, metadata}
+    metadata =
+      case custom_metadata do
+        none when none in [nil, ""] -> %{}
+        metadata -> serializer.deserialize(metadata, [])
       end
+
+    data = serializer.deserialize(body, type: type)
 
     {causation_id, metadata} = Map.pop(metadata, "$causationId")
     {correlation_id, metadata} = Map.pop(metadata, "$correlationId")
@@ -66,7 +58,16 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
     }
 
     if link do
-      metadata = Map.put(event.metadata, :link, to_recorded_event(link, serializer))
+      link_payload =
+        if String.starts_with?(link.type, "$") do
+          # we're not parsing system events because the body is sometimes a string
+          # and commanded requires a struct
+          link
+        else
+          to_recorded_event(link, serializer)
+        end
+
+      metadata = Map.put(event.metadata, :link, link_payload)
 
       %{event | metadata: metadata}
     else
