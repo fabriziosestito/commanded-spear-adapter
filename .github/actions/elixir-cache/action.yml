@@ -15,7 +15,7 @@ runs:
       id: caches
       run: |
         echo "base_key=${{ steps.elixir.outputs.version }}" >> $GITHUB_OUTPUT
-        echo "mix_lock_digest=mix_lock__${{ hashFiles(format('{0}/{1}', github.workspace, 'mix.lock')) }}" >> $GITHUB_OUTPUT
+        echo "mix_lock_digest=mix_lock__${{ hashFiles('mix.lock') }}" >> $GITHUB_OUTPUT
         echo "src_digest=src__${{ hashFiles('config/**', 'lib/**', 'test/**') }}" >> $GITHUB_OUTPUT
       shell: bash
 
