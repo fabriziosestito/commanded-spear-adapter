@@ -1,5 +1,5 @@
 defmodule Commanded.EventStore.Adapters.Spear.NoPrefixTest do
-  use ExUnit.Case
+  use Commanded.SpearTestCase
 
   alias Commanded.EventStore.Adapters.Spear, as: SpearAdapter
 
@@ -10,9 +10,11 @@ defmodule Commanded.EventStore.Adapters.Spear.NoPrefixTest do
     defstruct [:name]
   end
 
-  test "should use non-prefixed stream names when stream_prefix is not set" do
-    event_store_meta = start_instance()
+  @tag eventstore_config: [stream_prefix: nil]
 
+  test "should use non-prefixed stream names when stream_prefix is not set", %{
+    event_store_meta: event_store_meta
+  } do
     event = fn name ->
       %EventData{
         event_type: to_string(TestEvent),
@@ -38,21 +40,5 @@ defmodule Commanded.EventStore.Adapters.Spear.NoPrefixTest do
 
     assert first.stream_id == stream0
     assert second.stream_id == stream1
-  end
-
-  defp start_instance do
-    # TODO: use dyanmic connection string once #47 has been merged
-    config = [
-      serializer: Commanded.Serialization.JsonSerializer,
-      spear: [connection_string: "esdb://localhost:2113"]
-    ]
-
-    {:ok, child_spec, event_store_meta} = SpearAdapter.child_spec(SpearApplication, config)
-
-    for child <- child_spec do
-      start_link_supervised!(child)
-    end
-
-    event_store_meta
   end
 end
