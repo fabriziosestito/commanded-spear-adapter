@@ -23,14 +23,17 @@ defmodule Commanded.EventStore.Adapters.Spear.NoPrefixTest do
       }
     end
 
+    assert :ok = SpearAdapter.subscribe(event_store_meta, :all)
+
     stream0 = Test.UUID.uuid4()
     assert :ok = SpearAdapter.append_to_stream(event_store_meta, stream0, 0, [event.("foo")])
 
     stream1 = Test.UUID.uuid4()
     assert :ok = SpearAdapter.append_to_stream(event_store_meta, stream1, 0, [event.("bar")])
 
-    # wait a bit because the $all projection is not synchronously built
-    :timer.sleep(1000)
+    # wait for the all stream to be built
+    assert_receive {:events, [%RecordedEvent{}]}
+    assert_receive {:events, [%RecordedEvent{}]}
 
     assert [%RecordedEvent{} = first, %RecordedEvent{} = second] =
              SpearAdapter.stream_forward(event_store_meta, :all)

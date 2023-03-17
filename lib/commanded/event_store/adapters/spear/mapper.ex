@@ -20,9 +20,54 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
   def to_recorded_event(
         %Spear.Event{
           id: id,
+          type: "$>" = type,
+          metadata: %{
+            commit_position: commit_position,
+            stream_revision: stream_revision,
+            stream_name: stream_name,
+            created: created
+          },
+          link: link
+        } = event,
+        serializer,
+        stream_prefix
+      ) do
+    metadata = %{}
+
+    {causation_id, metadata} = Map.pop(metadata, "$causationId")
+    {correlation_id, metadata} = Map.pop(metadata, "$correlationId")
+
+    event = %RecordedEvent{
+      event_id: id,
+      event_number: commit_position,
+      stream_id: to_stream_id(stream_prefix, stream_name),
+      stream_version: stream_revision + 1,
+      causation_id: causation_id,
+      correlation_id: correlation_id,
+      event_type: type,
+      data: event,
+      metadata: metadata,
+      created_at: created
+    }
+
+    if link do
+      link_payload = to_recorded_event(link, serializer, stream_prefix)
+
+      metadata = Map.put(event.metadata, :link, link_payload)
+
+      %{event | metadata: metadata}
+    else
+      event
+    end
+  end
+
+  def to_recorded_event(
+        %Spear.Event{
+          id: id,
           body: body,
           type: type,
           metadata: %{
+            commit_position: commit_position,
             stream_revision: stream_revision,
             stream_name: stream_name,
             created: created,
@@ -33,34 +78,39 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
         serializer,
         stream_prefix
       ) do
-    event_number =
-      if link do
-        link.metadata.stream_revision + 1
-      else
-        stream_revision + 1
-      end
-
     metadata =
       case custom_metadata do
         none when none in [nil, ""] -> %{}
         metadata -> serializer.deserialize(metadata, [])
       end
 
+    data = serializer.deserialize(body, type: type)
+
     {causation_id, metadata} = Map.pop(metadata, "$causationId")
     {correlation_id, metadata} = Map.pop(metadata, "$correlationId")
 
-    %RecordedEvent{
+    event = %RecordedEvent{
       event_id: id,
-      event_number: event_number,
+      event_number: commit_position,
       stream_id: to_stream_id(stream_prefix, stream_name),
       stream_version: stream_revision + 1,
       causation_id: causation_id,
       correlation_id: correlation_id,
       event_type: type,
-      data: serializer.deserialize(body, type: type),
+      data: data,
       metadata: metadata,
       created_at: created
     }
+
+    if link do
+      link_payload = to_recorded_event(link, serializer, stream_prefix)
+
+      metadata = Map.put(event.metadata, :link, link_payload)
+
+      %{event | metadata: metadata}
+    else
+      event
+    end
   end
 
   def to_proposed_message(
