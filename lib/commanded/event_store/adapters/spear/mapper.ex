@@ -119,15 +119,29 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
           event_type: event_type
         } = event,
         serializer,
-        content_type
+        serializer_content_type
       ) do
+    content_type =
+      if event_type == "$>" do
+        "application/octet-stream"
+      else
+        serializer_content_type
+      end
+
+    custom_metadata =
+      if event_type == "$>" do
+        ""
+      else
+        serialize_metadata(event, serializer)
+      end
+
     event_type
     |> Spear.Event.new(
       data,
       content_type: content_type,
-      custom_metadata: serialize_metadata(event, serializer)
+      custom_metadata: custom_metadata
     )
-    |> Spear.Event.to_proposed_message(%{content_type => &serializer.serialize/1})
+    |> Spear.Event.to_proposed_message(%{serializer_content_type => &serializer.serialize/1})
   end
 
   def to_snapshot_data(%RecordedEvent{data: %SnapshotData{} = snapshot} = event) do
