@@ -19,14 +19,17 @@ defmodule Commanded.EventStore.Adapters.Spear.StreamTest do
       }
     end
 
+    assert :ok = SpearAdapter.subscribe(event_store_meta, :all)
+
     assert :ok =
              SpearAdapter.append_to_stream(event_store_meta, Test.UUID.uuid4(), 0, [event.("foo")])
 
     assert :ok =
              SpearAdapter.append_to_stream(event_store_meta, Test.UUID.uuid4(), 0, [event.("bar")])
 
-    # wait a bit because the $ce-xxx projection is not synchronously built
-    :timer.sleep(1000)
+    # wait for the all stream to be built
+    assert_receive {:events, [%RecordedEvent{}]}
+    assert_receive {:events, [%RecordedEvent{}]}
 
     assert [%RecordedEvent{data: first}, %RecordedEvent{data: second}] =
              SpearAdapter.stream_forward(event_store_meta, :all) |> Enum.to_list()
@@ -41,11 +44,17 @@ defmodule Commanded.EventStore.Adapters.Spear.StreamTest do
   } do
     conn = start_link_supervised!({Spear.Connection, [connection_string: event_store_db_uri]})
 
-    insert(event_store_meta, conn, "b0", "teststream-b")
-    insert_link(event_store_meta, conn, {0, "teststream-b"}, "stream_c")
+    assert :ok = SpearAdapter.subscribe(event_store_meta, :all)
 
-    # wait a bit because the $all projection is not synchronously built
-    :timer.sleep(1000)
+    assert %Spear.Event{id: event_b_id} = insert(event_store_meta, conn, "b0", "teststream-b")
+
+    assert %Spear.Event{id: _event_c_id} =
+             insert_link(event_store_meta, conn, {0, "teststream-b"}, "stream_c")
+
+    # # wait for the all stream to be built
+    # second time is the linked event, but the id of the linked event is not event_c_id for some reason
+    assert_receive {:events, [%RecordedEvent{event_id: ^event_b_id}]}
+    assert_receive {:events, [%RecordedEvent{event_id: ^event_b_id}]}
 
     [first, second] =
       SpearAdapter.stream_forward(event_store_meta, :all)
