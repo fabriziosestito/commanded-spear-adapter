@@ -62,7 +62,7 @@ defmodule Commanded.EventStore.Adapters.Spear.EventPublisher do
     :ok =
       read_resp
       |> Spear.Event.from_read_response(json_decoder: fn data, _ -> data end)
-      |> process_push(state)
+      |> maybe_process_push(state)
 
     {:noreply, state}
   end
@@ -82,45 +82,48 @@ defmodule Commanded.EventStore.Adapters.Spear.EventPublisher do
     {:noreply, state, {:continue, :subscribe}}
   end
 
+  # Below clauses are a workaround to skip events on a system stream.
+  # Using a filter would be better, but for some reason the filter causes no events to be received.
+  defp maybe_process_push(%Spear.Event{metadata: %{stream_name: "$" <> _}} = event, _state) do
+    Logger.debug("Skipping event #{inspect(event)}")
+    :ok
+  end
+
+  defp maybe_process_push(
+         %Spear.Event{
+           link: %Spear.Event{metadata: %{stream_name: "$" <> _ = listening_stream}}
+         } = event,
+         %State{stream_name: listening_stream} = state
+       ) do
+    # if the event is a link on system stream, only process it when it's the stream we are listing on
+    # this is the case for the 'all' stream when using a prefix
+    process_push(event, state)
+  end
+
+  defp maybe_process_push(
+         %Spear.Event{
+           link: %Spear.Event{metadata: %{stream_name: "$" <> _}}
+         } = event,
+         _state
+       ) do
+    # if the link is on a system stream and it's not the stream we are listening on; ignore it
+    Logger.debug("Skipping link event #{inspect(event)}")
+    :ok
+  end
+
+  defp maybe_process_push(%Spear.Event{} = event, %State{} = state) do
+    # in all other cases, process the event
+    process_push(event, state)
+  end
+
   defp process_push(%Spear.Event{} = event, %State{
          serializer: serializer,
          stream_prefix: stream_prefix,
-         pubsub: pubsub,
-         stream_name: listening_stream
+         pubsub: pubsub
        }) do
-    # This is a workaround to skip system events.
-    # Using a filter would be better, but for some reason the filter causes no events to be received.
-
-    action =
-      case event do
-        %Spear.Event{metadata: %{stream_name: "$" <> _}} ->
-          # if the event itself is on a system stream, ignore it
-          :ignore
-
-        %Spear.Event{link: %Spear.Event{metadata: %{stream_name: "$" <> _ = stream_name}}} ->
-          # if the event is a link on system stream, only process it when it's the stream we are listing on
-          # this is the case for the 'all' stream when using a prefix
-          if stream_name == listening_stream do
-            :process
-          else
-            :ignore
-          end
-
-        %Spear.Event{} ->
-          # in all other cases, process the event
-          :process
-      end
-
-    case action do
-      :ignore ->
-        Logger.debug("Skipping event #{inspect(event)}")
-        :ok
-
-      :process ->
-        event
-        |> Mapper.to_recorded_event(serializer, stream_prefix)
-        |> publish(pubsub)
-    end
+    event
+    |> Mapper.to_recorded_event(serializer, stream_prefix)
+    |> publish(pubsub)
   end
 
   defp publish(%RecordedEvent{} = recorded_event, pubsub) do
