@@ -799,7 +799,6 @@ defmodule Commanded.EventStore.Spear.SubscriptionTestCase do
       from_event_number = Keyword.get(opts, :from, 1)
 
       assert_receive {:events, received_events}
-      # assert_received_events(received_events, from_event_number)
 
       case Keyword.get(opts, :subscription) do
         subscription when is_pid(subscription) ->
@@ -827,14 +826,6 @@ defmodule Commanded.EventStore.Spear.SubscriptionTestCase do
           flunk("Received #{abs(remaining)} more event(s) than expected")
       end
     end
-
-    # defp assert_received_events(received_events, from_event_number) do
-    #   received_events
-    #   |> Enum.with_index(from_event_number)
-    #   |> Enum.each(fn {received_event, expected_event_number} ->
-    #     assert received_event.event_number == expected_event_number
-    #   end)
-    # end
 
     defp build_event(account_number) do
       %EventData{
