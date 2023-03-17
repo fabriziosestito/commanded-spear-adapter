@@ -64,9 +64,19 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   end
 
   @doc """
-  Acknowledge receipt and successful processing of the given event.
+  Positively acknowledges the receipt of the given event.
   """
-  def ack(subscription, event_number), do: GenServer.call(subscription, {:ack, event_number})
+  def ack(subscription, event_number) do
+    GenServer.call(subscription, {:ack, event_number})
+  end
+
+  @doc """
+  Negatively acknowledges the receipt of the given event.
+  """
+  @spec nack(pid(), non_neg_integer(), [{:action, Spear.PersistentSubscription.nack_action()}]) :: :ok
+  def nack(subscription, event_number, opts \\ []) do
+    GenServer.call(subscription, {:nack, event_number, opts})
+  end
 
   @impl GenServer
   def init(%State{subscriber: subscriber} = state) do
@@ -89,6 +99,23 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
       ) do
     Logger.debug(fn -> describe(state) <> " ack event: #{inspect(event_number)}" end)
     :ok = Spear.ack(conn, subscription, [event_id])
+
+    {:reply, :ok, %State{state | last_seen_event_id: nil, last_seen_event_number: nil}}
+  end
+
+  @impl GenServer
+  def handle_call(
+        {:nack, event_number, opts},
+        _from,
+        %State{
+          conn: conn,
+          last_seen_event_number: event_number,
+          subscription: subscription,
+          last_seen_event_id: event_id
+        } = state
+      ) do
+    Logger.debug(fn -> describe(state) <> " nack event: #{inspect(event_number)}" end)
+    :ok = Spear.nack(conn, subscription, [event_id], opts)
 
     {:reply, :ok, %State{state | last_seen_event_id: nil, last_seen_event_number: nil}}
   end
