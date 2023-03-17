@@ -1,4 +1,4 @@
-defmodule Commanded.EventStore.Adapters.Spear.SubscriptionTest do
+defmodule Commanded.EventStore.Adapters.Spear.NackTest do
   use Commanded.SpearTestCase, async: true
 
   alias Commanded.EventStore.Adapters.Spear, as: SpearAdapter
