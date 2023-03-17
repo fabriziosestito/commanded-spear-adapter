@@ -73,7 +73,11 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   @doc """
   Negatively acknowledges the receipt of the given event.
   """
-  @spec nack(pid(), non_neg_integer(), [{:action, Spear.PersistentSubscription.nack_action()}]) :: :ok
+  @spec nack(
+          pid(),
+          non_neg_integer(),
+          [{:action, Spear.PersistentSubscription.nack_action()}]
+        ) :: :ok
   def nack(subscription, event_number, opts \\ []) do
     GenServer.call(subscription, {:nack, event_number, opts})
   end
