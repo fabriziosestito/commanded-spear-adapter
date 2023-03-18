@@ -28,8 +28,8 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
             created: created
           },
           link: link
-        } = event,
-        serializer,
+        } = spear_event,
+        _serializer,
         stream_prefix
       ) do
     metadata = %{}
@@ -37,7 +37,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
     {causation_id, metadata} = Map.pop(metadata, "$causationId")
     {correlation_id, metadata} = Map.pop(metadata, "$correlationId")
 
-    event = %RecordedEvent{
+    recorded_event = %RecordedEvent{
       event_id: id,
       event_number: commit_position,
       stream_id: to_stream_id(stream_prefix, stream_name),
@@ -45,19 +45,17 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
       causation_id: causation_id,
       correlation_id: correlation_id,
       event_type: type,
-      data: event,
+      data: spear_event,
       metadata: metadata,
       created_at: created
     }
 
     if link do
-      link_payload = to_recorded_event(link, serializer, stream_prefix)
+      metadata = Map.put(recorded_event.metadata, :link, link)
 
-      metadata = Map.put(event.metadata, :link, link_payload)
-
-      %{event | metadata: metadata}
+      %{recorded_event | metadata: metadata}
     else
-      event
+      recorded_event
     end
   end
 
@@ -89,7 +87,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
     {causation_id, metadata} = Map.pop(metadata, "$causationId")
     {correlation_id, metadata} = Map.pop(metadata, "$correlationId")
 
-    event = %RecordedEvent{
+    recorded_event = %RecordedEvent{
       event_id: id,
       event_number: commit_position,
       stream_id: to_stream_id(stream_prefix, stream_name),
@@ -103,13 +101,11 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
     }
 
     if link do
-      link_payload = to_recorded_event(link, serializer, stream_prefix)
+      metadata = Map.put(recorded_event.metadata, :link, link)
 
-      metadata = Map.put(event.metadata, :link, link_payload)
-
-      %{event | metadata: metadata}
+      %{recorded_event | metadata: metadata}
     else
-      event
+      recorded_event
     end
   end
 
