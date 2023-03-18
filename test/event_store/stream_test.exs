@@ -20,14 +20,21 @@ defmodule Commanded.EventStore.Adapters.Spear.StreamTest do
              SpearAdapter.append_to_stream(event_store_meta, stream, 0, [
                %EventData{
                  event_type: event_type,
-                 data: data,
-                 metadata: %{content_type: "application/octet-stream"}
+                 data: data
                }
              ])
 
-    assert [%RecordedEvent{event_type: ^event_type, data: %Spear.Event{body: ^data}}] =
+    assert [
+             %RecordedEvent{
+               event_type: ^event_type,
+               data: %Spear.Event{body: ^data},
+               metadata: metadata
+             }
+           ] =
              SpearAdapter.stream_forward(event_store_meta, stream)
              |> Enum.to_list()
+
+    assert metadata == %{}
   end
 
   test "should read from the all stream properly", %{event_store_meta: event_store_meta} do
