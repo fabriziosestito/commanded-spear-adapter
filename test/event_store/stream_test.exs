@@ -10,6 +10,33 @@ defmodule Commanded.EventStore.Adapters.Spear.StreamTest do
     defstruct [:name]
   end
 
+  test "override content type", %{event_store_meta: event_store_meta} do
+    stream = Test.UUID.uuid4()
+
+    event_type = "$>"
+    data = "hello world"
+
+    assert :ok =
+             SpearAdapter.append_to_stream(event_store_meta, stream, 0, [
+               %EventData{
+                 event_type: event_type,
+                 data: data
+               }
+             ])
+
+    assert [
+             %RecordedEvent{
+               event_type: ^event_type,
+               data: %Spear.Event{body: ^data},
+               metadata: metadata
+             }
+           ] =
+             SpearAdapter.stream_forward(event_store_meta, stream)
+             |> Enum.to_list()
+
+    assert metadata == %{}
+  end
+
   test "should read from the all stream properly", %{event_store_meta: event_store_meta} do
     event = fn name ->
       %EventData{
@@ -69,10 +96,10 @@ defmodule Commanded.EventStore.Adapters.Spear.StreamTest do
              metadata: %{link: link}
            } = first
 
-    assert %RecordedEvent{
-             stream_id: ^all_stream,
-             stream_version: 1,
-             event_type: "$>"
+    assert %Spear.Event{
+             type: "$>",
+             link: nil,
+             metadata: %{stream_name: ^all_stream, stream_revision: 0}
            } = link
 
     assert %RecordedEvent{
@@ -81,10 +108,10 @@ defmodule Commanded.EventStore.Adapters.Spear.StreamTest do
              metadata: %{link: link}
            } = second
 
-    assert %RecordedEvent{
-             stream_id: ^all_stream,
-             stream_version: 2,
-             event_type: "$>"
+    assert %Spear.Event{
+             type: "$>",
+             link: nil,
+             metadata: %{stream_name: ^all_stream, stream_revision: 1}
            } = link
   end
 
