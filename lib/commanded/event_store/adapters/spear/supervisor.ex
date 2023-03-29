@@ -26,17 +26,24 @@ defmodule Commanded.EventStore.Adapters.Spear.Supervisor do
     event_publisher_name = Module.concat([event_store, EventPublisher])
     pubsub_name = Module.concat([event_store, PubSub])
     subscriptions_name = Module.concat([event_store, SubscriptionsSupervisor])
-    conn_name = Module.concat([event_store, Spear.Connection])
+    read_conn_name = Module.concat([event_store, Read, Spear.Connection])
+    write_conn_name = Module.concat([event_store, Write, Spear.Connection])
+
+    conn_child_spec = fn name ->
+      child_spec = {Spear.Connection, Keyword.merge(spear_config, name: name)}
+      Supervisor.child_spec(child_spec, id: name)
+    end
 
     children = [
       {Registry, keys: :duplicate, name: pubsub_name, partitions: 1},
-      {Spear.Connection, Keyword.merge(spear_config, name: conn_name)},
+      conn_child_spec.(read_conn_name),
+      conn_child_spec.(write_conn_name),
       %{
         id: EventPublisher,
         start:
           {EventPublisher, :start_link,
            [
-             {conn_name, pubsub_name, all_stream, serializer, stream_prefix},
+             {read_conn_name, pubsub_name, all_stream, serializer, stream_prefix},
              [name: event_publisher_name]
            ]},
         restart: :permanent,
