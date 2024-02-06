@@ -58,6 +58,16 @@ defmodule Commanded.EventStore.Adapters.Spear.EventPublisher do
     {:noreply, state}
   end
 
+  @impl GenServer
+  def handle_info({_ref, Streams.read_resp(content: {:caught_up, _})}, state) do
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  def handle_info({_ref, Streams.read_resp(content: {:fell_behind, _})}, state) do
+    {:noreply, state}
+  end
+
   def handle_info({_ref, Streams.read_resp() = read_resp}, state) do
     :ok =
       read_resp
