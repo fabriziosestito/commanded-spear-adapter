@@ -140,7 +140,8 @@ defmodule Commanded.EventStore.Adapters.Spear.Mapper do
     |> Spear.Event.to_proposed_message(%{serializer_content_type => &serializer.serialize/1})
   end
 
-  def to_snapshot_data(%RecordedEvent{data: %SnapshotData{} = snapshot} = event) do
+  def to_snapshot_data(%RecordedEvent{data: %SnapshotData{} = snapshot} = event)
+      when is_struct(snapshot.data) do
     %SnapshotData{snapshot | created_at: event.created_at}
   end
 
