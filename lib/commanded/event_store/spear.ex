@@ -179,7 +179,7 @@ defmodule Commanded.EventStore.Adapters.Spear do
 
     Logger.debug(fn -> "Spear event store read snapshot from stream: " <> inspect(stream) end)
 
-    case execute_read(adapter_meta, stream, :start, 1, :backwards) do
+    case execute_read(adapter_meta, stream, :end, 1, :backwards) do
       {:ok, stream} ->
         case Enum.take(stream, 1) do
           [recorded_event] -> {:ok, Mapper.to_snapshot_data(recorded_event)}

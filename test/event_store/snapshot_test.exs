@@ -22,4 +22,21 @@ defmodule Commanded.EventStore.Adapters.Spear.SnapshotTest do
     assert %{data: data} = snapshot
     assert %BankAccountOpened{account_number: 100, initial_balance: :foo} = data
   end
+
+  test "works with json serializer", %{
+    event_store: event_store,
+    event_store_meta: event_store_meta
+  } do
+    event_store_meta =
+      event_store_meta
+      |> Map.replace!(:serializer, Commanded.Serialization.JsonSerializer)
+      |> Map.put(:content_type, "application/json")
+
+    snapshot = build_snapshot_data(100)
+    assert :ok = event_store.record_snapshot(event_store_meta, snapshot)
+
+    {:ok, snapshot} = event_store.read_snapshot(event_store_meta, snapshot.source_uuid)
+    assert %{data: data} = snapshot
+    assert %BankAccountOpened{account_number: 100} = data
+  end
 end
