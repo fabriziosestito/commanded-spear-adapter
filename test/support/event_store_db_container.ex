@@ -12,7 +12,7 @@ defmodule TestUtils.EventStoreDBContainer do
     image_os =
       case :erlang.system_info(:system_architecture) |> IO.iodata_to_binary() do
         "aarch64" <> _ -> "alpha-arm64v8"
-        _ -> "bionic"
+        _ -> "jammy"
       end
 
     image_tag = "eventstore/eventstore:#{image_version}-#{image_os}"
