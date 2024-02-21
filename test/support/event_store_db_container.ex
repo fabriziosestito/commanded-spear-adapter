@@ -7,12 +7,12 @@ defmodule TestUtils.EventStoreDBContainer do
   @wait_strategy Docker.CommandWaitStrategy.new(["curl", "-f", "localhost:2113/ping"])
 
   def new(opts \\ []) do
-    image_version = Keyword.get(opts, :version, "22.10.1")
+    image_version = Keyword.get(opts, :version, "23.10.0")
 
     image_os =
       case :erlang.system_info(:system_architecture) |> IO.iodata_to_binary() do
         "aarch64" <> _ -> "alpha-arm64v8"
-        _ -> "bionic"
+        _ -> "jammy"
       end
 
     image_tag = "eventstore/eventstore:#{image_version}-#{image_os}"
