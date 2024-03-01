@@ -46,7 +46,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Mixfile do
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:excontainers, "~> 0.3.1", only: :test},
-      {:ex_check, "~> 0.15.0", only: [:dev, :test], runtime: false}
+      {:ex_check, "~> 0.16.0", only: [:dev, :test], runtime: false}
     ]
   end
 
