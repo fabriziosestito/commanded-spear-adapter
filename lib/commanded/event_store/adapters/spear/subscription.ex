@@ -85,9 +85,9 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   @impl GenServer
   def init(%State{subscriber: subscriber} = state) do
     Process.flag(:trap_exit, true)
-    send(self(), :subscribe)
+    state = %State{state | subscriber_ref: Process.monitor(subscriber)}
 
-    {:ok, %State{state | subscriber_ref: Process.monitor(subscriber)}}
+    {:ok, state, {:continue, :subscribe}}
   end
 
   @impl GenServer
@@ -128,7 +128,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   end
 
   @impl GenServer
-  def handle_info(:subscribe, state) do
+  def handle_continue(:subscribe, state) do
     Logger.debug(fn ->
       describe(state) <>
         " to stream: #{inspect(state.stream)}, start from: #{inspect(state.start_from)}"
@@ -181,11 +181,20 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   @impl GenServer
   def handle_info(
         {:eos, subscription, reason},
-        %State{subscription: subscription} = state
+        %State{subscription: subscription, retry_interval: retry_interval} = state
       ) do
-    Logger.debug(fn -> describe(state) <> " down due to: #{inspect(reason)} (subscription)" end)
+    Logger.warn(fn ->
+      describe(state) <>
+        " down due to: #{inspect(reason)} (subscription). Will retry in #{retry_interval} ms."
+    end)
 
-    {:stop, {:shutdown, :subscription_shutdown}, state}
+    Process.send_after(self(), :retry, retry_interval)
+
+    {:noreply, state}
+  end
+
+  def handle_info(:retry, state) do
+    {:noreply, state, {:continue, :subscribe}}
   end
 
   @impl GenServer
@@ -248,7 +257,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
             " failed to subscribe due to: #{inspect(err)}. Will retry in #{retry_interval}ms"
         end)
 
-        Process.send_after(self(), :subscribe, retry_interval)
+        Process.send_after(self(), :retry, retry_interval)
 
         %State{state | subscribed?: false}
     end
@@ -299,7 +308,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   end
 
   # Get the delay between subscription attempts, in milliseconds, from app
-  # config. The default value is one minute. The minimum allowed value is one
+  # config. The default value is one second. The minimum allowed value is one
   # second.
   defp subscription_retry_interval do
     case Application.get_env(:commanded_spear_adapter, :subscription_retry_interval) do
@@ -308,8 +317,8 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
         max(interval, 1_000)
 
       _ ->
-        # Default to one minute
-        60_000
+        # Default to one second
+        1_000
     end
   end
 
