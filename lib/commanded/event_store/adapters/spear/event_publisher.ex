@@ -44,8 +44,14 @@ defmodule Commanded.EventStore.Adapters.Spear.EventPublisher do
         {:noreply, %State{state | subscription: subscription}}
 
       {:error, reason} ->
+        message =
+          case reason do
+            %Mint.HTTPError{reason: reason} -> reason
+            reason -> reason
+          end
+
         Logger.warn(
-          "Cannot subscribe to #{stream_name} (reason: #{reason}). Will retry in #{@reconnect_delay} ms."
+          "Cannot subscribe to #{stream_name} (reason: #{inspect(message)}). Will retry in #{@reconnect_delay} ms."
         )
 
         Process.send_after(self(), :retry, @reconnect_delay)
