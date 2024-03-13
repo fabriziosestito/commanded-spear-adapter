@@ -18,6 +18,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
     :name,
     :retry_interval,
     :serializer,
+    :stream_prefix,
     :stream,
     :start_from,
     :concurrency_limit,
@@ -30,7 +31,16 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   @doc """
   Start a process to create and connect a persistent connection to the Event Store
   """
-  def start_link(conn, stream, subscription_name, subscriber, serializer, opts) do
+  def start_link(
+        event_store,
+        conn,
+        stream,
+        subscription_name,
+        subscriber,
+        serializer,
+        stream_prefix,
+        opts
+      ) do
     if Keyword.get(opts, :partition_by) do
       raise "commanded_spear_adapter does not support partition_by"
     end
@@ -40,6 +50,7 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
       stream: stream,
       name: subscription_name,
       serializer: serializer,
+      stream_prefix: stream_prefix,
       subscriber: subscriber,
       start_from: Keyword.get(opts, :start_from),
       concurrency_limit: Keyword.get(opts, :concurrency_limit, 1),
@@ -47,15 +58,29 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
     }
 
     # Prevent duplicate subscriptions by stream/name
-    name = {:global, {__MODULE__, stream, subscription_name, Keyword.get(opts, :index, 1)}}
+    name = {event_store, __MODULE__, stream, subscription_name, Keyword.get(opts, :index, 1)}
 
-    GenServer.start_link(__MODULE__, state, name: name)
+    GenServer.start_link(__MODULE__, state, name: {:global, name})
   end
 
   @doc """
-  Acknowledge receipt and successful processing of the given event.
+  Positively acknowledges the receipt of the given event.
   """
-  def ack(subscription, event_number), do: GenServer.call(subscription, {:ack, event_number})
+  def ack(subscription, event_number) do
+    GenServer.call(subscription, {:ack, event_number})
+  end
+
+  @doc """
+  Negatively acknowledges the receipt of the given event.
+  """
+  @spec nack(
+          pid(),
+          non_neg_integer(),
+          [{:action, Spear.PersistentSubscription.nack_action()}]
+        ) :: :ok
+  def nack(subscription, event_number, opts \\ []) do
+    GenServer.call(subscription, {:nack, event_number, opts})
+  end
 
   @impl GenServer
   def init(%State{subscriber: subscriber} = state) do
@@ -76,8 +101,28 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
           last_seen_event_id: event_id
         } = state
       ) do
-    Logger.debug(fn -> describe(state) <> " ack event: #{inspect(event_number)}" end)
+    Logger.debug(fn ->
+      describe(state) <> " ack event: #{inspect(event_number)} #{inspect(event_id)}"
+    end)
+
     :ok = Spear.ack(conn, subscription, [event_id])
+
+    {:reply, :ok, %State{state | last_seen_event_id: nil, last_seen_event_number: nil}}
+  end
+
+  @impl GenServer
+  def handle_call(
+        {:nack, event_number, opts},
+        _from,
+        %State{
+          conn: conn,
+          last_seen_event_number: event_number,
+          subscription: subscription,
+          last_seen_event_id: event_id
+        } = state
+      ) do
+    Logger.debug(fn -> describe(state) <> " nack event: #{inspect(event_number)}" end)
+    :ok = Spear.nack(conn, subscription, [event_id], opts)
 
     {:reply, :ok, %State{state | last_seen_event_id: nil, last_seen_event_number: nil}}
   end
@@ -95,37 +140,31 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
   @impl GenServer
   def handle_info(
         {_, Persistent.read_resp() = read_resp},
-        %State{
-          conn: conn,
-          subscription: subscription,
-          subscriber: subscriber,
-          serializer: serializer
-        } = state
+        %State{stream: listening_stream} = state
       ) do
     case Mapper.to_spear_event(read_resp) do
       # Some events are not skipped even if the filter is set, this is a workaround for this issue.
       # For instance when a stream is deleted, the subscription receives a deleted system event.
+      %Spear.Event{metadata: %{stream_name: "$" <> _}} = event ->
+        skip_event(event, state)
 
-      %Spear.Event{type: "$>", id: event_id} = event ->
-        Logger.debug(fn -> describe(state) <> " skipping event: #{inspect(event)}" end)
-        :ok = Spear.ack(conn, subscription, [event_id])
-
-        {:noreply, state}
+      # Same workaround as above, but for links.
+      %Spear.Event{
+        link:
+          %Spear.Event{
+            metadata: %{stream_name: "$" <> _ = stream_name}
+          } = link
+      } = event ->
+        # if the event is a link on system stream, only process it when it's the stream we are listing on
+        # this is the case for the 'all' stream when using a prefix
+        if stream_name == listening_stream do
+          process_event(event, state)
+        else
+          skip_event(link, state)
+        end
 
       event ->
-        Logger.debug(fn -> describe(state) <> " received event: #{inspect(event)}" end)
-
-        %RecordedEvent{event_number: event_number} =
-          recorded_event = Mapper.to_recorded_event(event, serializer)
-
-        send(subscriber, {:events, [recorded_event]})
-
-        {:noreply,
-         %State{
-           state
-           | last_seen_event_id: event_id_to_ack(event),
-             last_seen_event_number: event_number
-         }}
+        process_event(event, state)
     end
   end
 
@@ -164,6 +203,39 @@ defmodule Commanded.EventStore.Adapters.Spear.Subscription do
     Process.sleep(1_000)
 
     state
+  end
+
+  defp skip_event(
+         %Spear.Event{id: event_id} = event,
+         %State{conn: conn, subscription: subscription} = state
+       ) do
+    Logger.debug(fn -> describe(state) <> " skipping event: #{inspect(event)}" end)
+    :ok = Spear.ack(conn, subscription, [event_id])
+
+    {:noreply, state}
+  end
+
+  defp process_event(
+         %Spear.Event{} = event,
+         %State{
+           subscriber: subscriber,
+           serializer: serializer,
+           stream_prefix: stream_prefix
+         } = state
+       ) do
+    Logger.debug(fn -> describe(state) <> " received event: #{inspect(event)}" end)
+
+    %RecordedEvent{event_number: event_number} =
+      recorded_event = Mapper.to_recorded_event(event, serializer, stream_prefix)
+
+    send(subscriber, {:events, [recorded_event]})
+
+    {:noreply,
+     %State{
+       state
+       | last_seen_event_id: event_id_to_ack(event),
+         last_seen_event_number: event_number
+     }}
   end
 
   defp subscribe(%State{} = state) do

@@ -1,0 +1,35 @@
+name: Test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["*"]
+  push:
+    branches: ["main"]
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # this is important! otherwise the restoring of the mtime won't work properly
+          fetch-depth: 0
+
+      - name: Restore timestamps
+        uses: ./.github/actions/restore-mtime
+
+      - name: Install Elixir
+        uses: ./.github/actions/asdf
+
+      - name: Elixir cache
+        uses: ./.github/actions/elixir-cache
+
+      - name: Mix dependencies
+        run: mix deps.get
+
+      - name: Checks
+        run: mix check

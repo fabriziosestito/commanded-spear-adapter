@@ -109,17 +109,19 @@ defmodule Commanded.EventStore.Adapters.Spear do
     conn = conn_name(adapter_meta)
     stream = Map.fetch!(adapter_meta, :all_stream)
     serializer = serializer(adapter_meta)
+    stream_prefix = stream_prefix(adapter_meta)
     opts = subscription_options(opts, start_from)
 
-    SubscriptionsSupervisor.start_subscription(
-      event_store,
-      conn,
-      stream,
-      subscription_name,
-      subscriber,
-      serializer,
-      opts
-    )
+    SubscriptionsSupervisor.start_subscription(%{
+      event_store: event_store,
+      conn: conn,
+      stream: stream,
+      subscription_name: subscription_name,
+      subscriber: subscriber,
+      serializer: serializer,
+      stream_prefix: stream_prefix,
+      opts: opts
+    })
   end
 
   @impl Commanded.EventStore.Adapter
@@ -128,17 +130,19 @@ defmodule Commanded.EventStore.Adapters.Spear do
     conn = conn_name(adapter_meta)
     stream = stream_name(adapter_meta, stream_uuid)
     serializer = serializer(adapter_meta)
+    stream_prefix = stream_prefix(adapter_meta)
     opts = subscription_options(opts, start_from)
 
-    SubscriptionsSupervisor.start_subscription(
-      event_store,
-      conn,
-      stream,
-      subscription_name,
-      subscriber,
-      serializer,
-      opts
-    )
+    SubscriptionsSupervisor.start_subscription(%{
+      event_store: event_store,
+      conn: conn,
+      stream: stream,
+      subscription_name: subscription_name,
+      subscriber: subscriber,
+      serializer: serializer,
+      stream_prefix: stream_prefix,
+      opts: opts
+    })
   end
 
   @impl Commanded.EventStore.Adapter
@@ -175,9 +179,12 @@ defmodule Commanded.EventStore.Adapters.Spear do
 
     Logger.debug(fn -> "Spear event store read snapshot from stream: " <> inspect(stream) end)
 
-    case execute_read(adapter_meta, stream, :start, 1, :backwards) do
-      {:ok, [recorded_event]} ->
-        {:ok, Mapper.to_snapshot_data(recorded_event)}
+    case execute_read(adapter_meta, stream, :end, 1, :backwards) do
+      {:ok, stream} ->
+        case Enum.take(stream, 1) do
+          [recorded_event] -> {:ok, Mapper.to_snapshot_data(recorded_event)}
+          [] -> {:error, :snapshot_not_found}
+        end
 
       {:error, :stream_not_found} ->
         {:error, :snapshot_not_found}
@@ -202,11 +209,25 @@ defmodule Commanded.EventStore.Adapters.Spear do
     Spear.delete_stream(conn, stream)
   end
 
-  defp stream_name(adapter_meta, stream_uuid),
-    do: Map.fetch!(adapter_meta, :stream_prefix) <> "-" <> stream_uuid
+  defp stream_name(adapter_meta, :all) do
+    Map.fetch!(adapter_meta, :all_stream)
+  end
 
-  defp snapshot_stream_name(adapter_meta, source_uuid),
-    do: Map.fetch!(adapter_meta, :stream_prefix) <> "snapshot-" <> source_uuid
+  defp stream_name(adapter_meta, stream_uuid) when is_binary(stream_uuid) do
+    if stream_prefix = Map.fetch!(adapter_meta, :stream_prefix) do
+      stream_prefix <> "-" <> stream_uuid
+    else
+      stream_uuid
+    end
+  end
+
+  defp snapshot_stream_name(adapter_meta, source_uuid) when is_binary(source_uuid) do
+    if stream_prefix = Map.fetch!(adapter_meta, :stream_prefix) do
+      stream_prefix <> "snapshot-" <> source_uuid
+    else
+      source_uuid
+    end
+  end
 
   defp normalize_start_version(0), do: :start
   defp normalize_start_version(start_version), do: start_version - 1
@@ -253,28 +274,31 @@ defmodule Commanded.EventStore.Adapters.Spear do
          adapter_meta,
          stream,
          start_version,
-         count,
+         chunk_size,
          direction
        ) do
     conn = conn_name(adapter_meta)
     serializer = Map.fetch!(adapter_meta, :serializer)
+    stream_prefix = stream_prefix(adapter_meta)
+
+    filter = spear_filter(stream)
 
     case Spear.stream!(conn, stream,
            raw?: true,
            from: start_version,
            direction: direction,
-           max_count: count
+           chunk_size: chunk_size,
+           filter: filter
          ) do
       [] ->
         {:error, :stream_not_found}
 
       events ->
         {:ok,
-         events
-         |> Enum.map(fn read_resp ->
+         Stream.map(events, fn read_resp ->
            read_resp
            |> Mapper.to_spear_event()
-           |> Mapper.to_recorded_event(serializer)
+           |> Mapper.to_recorded_event(serializer, stream_prefix)
          end)}
     end
   end
@@ -291,7 +315,14 @@ defmodule Commanded.EventStore.Adapters.Spear do
   defp expected_version(expected_version), do: expected_version - 1
 
   defp serializer(adapter_meta), do: Map.fetch!(adapter_meta, :serializer)
+  defp stream_prefix(adapter_meta), do: Map.fetch!(adapter_meta, :stream_prefix)
   defp content_type(adapter_meta), do: Map.fetch!(adapter_meta, :content_type)
   defp server_name(adapter_meta), do: Map.fetch!(adapter_meta, :event_store)
   defp conn_name(adapter_meta), do: Map.fetch!(adapter_meta, :conn)
+
+  defp spear_filter(stream) do
+    if stream == :all do
+      Spear.Filter.exclude_system_events()
+    end
+  end
 end

@@ -1,3 +1,7 @@
+[![CI](https://github.com/fabriziosestito/commanded-spear-adapter/actions/workflows/test.yaml/badge.svg)](https://github.com/fabriziosestito/commanded-spear-adapter/actions/workflows/test.yaml)
+[![Hex.pm](https://img.shields.io/hexpm/v/commanded_spear_adapter.svg)](https://hex.pm/packages/commanded_spear_adapter)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-purple.svg)](https://hexdocs.pm/commanded_spear_adapter/)
+
 # Spear EventStoreDB adapter for Commanded
 
 Commanded EvenstoreDB adapter based on [spear](https://github.com/NFIBrokerage/spear).
@@ -19,7 +23,7 @@ The package can be installed from hex as follows.
 
    ```elixir
    def deps do
-     [{:commanded_spear_adapter, "~> 0.1"}]
+     [{:commanded_spear_adapter, "~> 0.2"}]
    end
    ```
 
@@ -49,6 +53,14 @@ The package can be installed from hex as follows.
    Refer to the [Spear](https://hexdocs.pm/spear/) library documentation for details on the available connection settings.
 
    **Note:** Stream prefix _must not_ contain a dash character ("-").
+
+### Partition
+
+This adapter does not support partitioning via the [`partition_by`](https://hexdocs.pm/commanded/Commanded.Event.Handler.html#partition_by/1) option.
+
+### Multi-node setup
+
+`commanded_spear_adapter` uses Erlang's `:global` registry to prevent duplicate subscriptions by stream/name.
 
 ### Use a serializer other than JSON
 
